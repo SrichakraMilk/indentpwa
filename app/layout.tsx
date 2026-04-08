@@ -6,8 +6,8 @@ export const metadata = {
   title: 'Indent PWA',
   description: 'Progressive web app for login, dashboard, and indent management.',
   icons: [
-    { rel: 'icon', url: '/icons/icon-192.svg', sizes: '192x192' },
-    { rel: 'apple-touch-icon', url: '/icons/icon-512.svg', sizes: '512x512' }
+    { rel: 'icon', url: '/icons/icon-192.png', sizes: '192x192' },
+    { rel: 'apple-touch-icon', url: '/icons/icon-512.png', sizes: '512x512' }
   ],
   metadataBase: new URL('https://example.com')
 };
