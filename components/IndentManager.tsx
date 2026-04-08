@@ -12,7 +12,12 @@ import {
 
 const statusOptions: IndentStatus[] = ['pending', 'approved', 'rejected'];
 
-export default function IndentManager() {
+interface IndentManagerProps {
+  filterStatus?: IndentStatus;
+  viewOnly?: boolean;
+}
+
+export default function IndentManager({ filterStatus, viewOnly = false }: IndentManagerProps) {
   const [indents, setIndents] = useState<Indent[]>([]);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -56,11 +61,20 @@ export default function IndentManager() {
     await refresh();
   };
 
+  const visibleIndents = filterStatus ? indents.filter((indent) => indent.status === filterStatus) : indents;
+
   return (
     <div className="card indent-card">
-      <section className="form-section">
-        <h2>Create a new indent</h2>
-        <form onSubmit={handleSubmit} className="form-grid">
+      {viewOnly ? (
+        <div className="view-only-banner">
+          Agent role can only view indents in this section.
+        </div>
+      ) : null}
+
+      {!viewOnly && (
+        <section className="form-section">
+          <h2>Create a new indent</h2>
+          <form onSubmit={handleSubmit} className="form-grid">
           <label>
             Title
             <input
@@ -97,16 +111,17 @@ export default function IndentManager() {
           </button>
         </form>
       </section>
+      )}
 
       <section className="list-section">
         <h2>Current indents</h2>
         {loading ? (
           <p>Loading indents…</p>
-        ) : indents.length === 0 ? (
-          <p>No indents yet. Create one to get started.</p>
+        ) : visibleIndents.length === 0 ? (
+          <p>No indents found{filterStatus ? ` for ${filterStatus}` : ''}.</p>
         ) : (
           <ul className="indent-list">
-            {indents.map((indent) => (
+            {visibleIndents.map((indent) => (
               <li key={indent.id} className="indent-card-small">
                 <div>
                   <h3>{indent.title}</h3>
@@ -114,21 +129,23 @@ export default function IndentManager() {
                   <span className={`pill status-${indent.status}`}>{indent.status}</span>
                 </div>
 
-                <div className="indent-actions">
-                  <select
-                    value={indent.status}
-                    onChange={(event) => handleStatusUpdate(indent.id, event.target.value as IndentStatus)}
-                  >
-                    {statusOptions.map((option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
-                  <button type="button" className="ghost-button" onClick={() => handleDelete(indent.id)}>
-                    Delete
-                  </button>
-                </div>
+                {!viewOnly ? (
+                  <div className="indent-actions">
+                    <select
+                      value={indent.status}
+                      onChange={(event) => handleStatusUpdate(indent.id, event.target.value as IndentStatus)}
+                    >
+                      {statusOptions.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                    <button type="button" className="ghost-button" onClick={() => handleDelete(indent.id)}>
+                      Delete
+                    </button>
+                  </div>
+                ) : null}
               </li>
             ))}
           </ul>

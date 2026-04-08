@@ -1,15 +1,95 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import ProtectedPage from '@/components/ProtectedPage';
 import Layout from '@/components/Layout';
+import { fetchCurrentAgent, AgentDetails } from '@/lib/api';
+import { useAuth } from '@/components/AuthProvider';
 
 export default function ProfilePage() {
+  const { token } = useAuth();
+  const [agent, setAgent] = useState<AgentDetails | null>(null);
+  const [profile, setProfile] = useState<{ name: string; email: string } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+
+    let active = true;
+
+    (async () => {
+      try {
+        const response = await fetchCurrentAgent(token);
+        if (active) {
+          setProfile(response.user);
+          setAgent(response.agent ?? null);
+        }
+      } catch (err) {
+        if (active) {
+          setError('Unable to load profile.');
+        }
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [token]);
+
   return (
     <ProtectedPage>
       <Layout title="Profile">
-        <section className="card">
-          <h2>Profile</h2>
-          <p>This is your profile overview. Update your details and manage your account here.</p>
+        <section className="card profile-card">
+          <header className="profile-header">
+            <div className="profile-avatar">
+              {(agent ? `${agent.fname} ${agent.lname}` : profile?.name)
+                ?.split(' ')
+                .map((part) => part[0])
+                .slice(0, 2)
+                .join('')}
+            </div>
+            <div>
+              <h2>{agent ? `${agent.fname} ${agent.lname}` : profile?.name ?? 'Profile'}</h2>
+              <p className="profile-subtitle">Agent profile</p>
+            </div>
+          </header>
+
+          {loading ? (
+            <p>Loading profile…</p>
+          ) : error ? (
+            <p className="form-error">{error}</p>
+          ) : (
+            <div className="profile-details">
+              <div className="profile-row">
+                <span>Agent ID</span>
+                <strong>{agent?.userid ?? agent?.userId ?? 'Unknown'}</strong>
+              </div>
+              <div className="profile-row">
+                <span>Name</span>
+                <strong>{agent ? `${agent.fname} ${agent.lname}` : profile?.name ?? 'Unknown'}</strong>
+              </div>
+              <div className="profile-row">
+                <span>Email</span>
+                <strong>{agent?.email ?? profile?.email ?? 'Not provided'}</strong>
+              </div>
+              <div className="profile-row">
+                <span>Mobile</span>
+                <strong>{agent?.mobile ?? 'Not provided'}</strong>
+              </div>
+              <div className="profile-row">
+                <span>Agent Code</span>
+                <strong>{agent?.agentCode ?? 'Not available'}</strong>
+              </div>
+            </div>
+          )}
         </section>
       </Layout>
     </ProtectedPage>

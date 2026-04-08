@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { fetchDashboard } from '@/lib/api';
 import ProtectedPage from '@/components/ProtectedPage';
 import Layout from '@/components/Layout';
@@ -23,18 +24,18 @@ export default function DashboardPage() {
     <ProtectedPage>
       <Layout title="Dashboard">
         <section className="dashboard-grid">
-          <article className="stat-card">
+          <Link href="/indents?status=pending" className="stat-card card-link">
             <h2>Pending</h2>
             <p>{loading ? '…' : stats.pending}</p>
-          </article>
-          <article className="stat-card">
+          </Link>
+          <Link href="/indents?status=approved" className="stat-card card-link">
             <h2>Approved</h2>
             <p>{loading ? '…' : stats.approved}</p>
-          </article>
-          <article className="stat-card">
+          </Link>
+          <Link href="/indents?status=rejected" className="stat-card card-link">
             <h2>Rejected</h2>
             <p>{loading ? '…' : stats.rejected}</p>
-          </article>
+          </Link>
           <article className="stat-card highlight">
             <h2>Total Indents</h2>
             <p>{loading ? '…' : stats.total}</p>
@@ -44,8 +45,8 @@ export default function DashboardPage() {
         <section className="dashboard-actions">
           <h3>Next steps</h3>
           <ul>
-            <li>Review your current indents.</li>
-            <li>Open the indent manager to create, update, or delete indents.</li>
+            <li>Click any status card to open that filtered indent list.</li>
+            <li>Agent users have view-only access in the indent manager.</li>
             <li>Replace the mock API with your backend endpoints once ready.</li>
           </ul>
         </section>

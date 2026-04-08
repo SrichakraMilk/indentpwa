@@ -3,6 +3,8 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { fetchCurrentAgent, login as apiLogin } from '@/lib/api';
 
+import type { AgentDetails } from '@/lib/api';
+
 interface User {
   name: string;
   email: string;
@@ -11,6 +13,7 @@ interface User {
 interface AuthContextValue {
   user: User | null;
   token: string | null;
+  agent: AgentDetails | null;
   initializing: boolean;
   login: (identifier: string, password: string) => Promise<void>;
   logout: () => void;
@@ -22,6 +25,7 @@ const STORAGE_KEY = 'indent-pwa-auth';
 export default function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
+  const [agent, setAgent] = useState<AgentDetails | null>(null);
   const [initializing, setInitializing] = useState(true);
 
   useEffect(() => {
@@ -33,17 +37,22 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
 
     (async () => {
       try {
-        const parsed = JSON.parse(saved) as { user: User; token: string };
+        const parsed = JSON.parse(saved) as { user: User; token: string; agent?: AgentDetails };
         if (!parsed.token) {
           throw new Error('Missing token');
         }
 
         const response = await fetchCurrentAgent(parsed.token);
         setUser(response.user);
+        setAgent(response.agent ?? parsed.agent ?? null);
         setToken(response.token);
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ user: response.user, token: response.token }));
+        window.localStorage.setItem(
+          STORAGE_KEY,
+          JSON.stringify({ user: response.user, token: response.token, agent: response.agent ?? parsed.agent ?? null })
+        );
       } catch {
         setUser(null);
+        setAgent(null);
         setToken(null);
         window.localStorage.removeItem(STORAGE_KEY);
       } finally {
@@ -54,20 +63,26 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
 
   const login = async (identifier: string, password: string) => {
     const response = await apiLogin(identifier, password);
-    setUser(response.user);
-    setToken(response.token);
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(response));
+    const profile = await fetchCurrentAgent(response.token);
+    setUser(profile.user);
+    setAgent(profile.agent ?? null);
+    setToken(profile.token);
+    window.localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ user: profile.user, token: profile.token, agent: profile.agent ?? null })
+    );
   };
 
   const logout = () => {
     setUser(null);
+    setAgent(null);
     setToken(null);
     window.localStorage.removeItem(STORAGE_KEY);
   };
 
   const value = useMemo(
-    () => ({ user, token, initializing, login, logout }),
-    [user, token, initializing]
+    () => ({ user, token, agent, initializing, login, logout }),
+    [user, token, agent, initializing]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

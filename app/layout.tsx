@@ -17,7 +17,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body>
         <AuthProvider>
-          <ServiceWorkerRegister />
+          {process.env.NODE_ENV === 'production' ? <ServiceWorkerRegister /> : null}
           {children}
         </AuthProvider>
       </body>

@@ -336,6 +336,57 @@ button:disabled {
   text-transform: capitalize;
 }
 
+.profile-card {
+  max-width: 720px;
+}
+
+.profile-header {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.profile-avatar {
+  width: 4rem;
+  height: 4rem;
+  border-radius: 999px;
+  background: #2563eb;
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+.profile-subtitle {
+  margin: 0.35rem 0 0;
+  color: #6b7280;
+}
+
+.profile-details {
+  display: grid;
+  gap: 1rem;
+}
+
+.profile-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  background: #f8fafc;
+  border-radius: 1rem;
+}
+
+.profile-row span {
+  color: #6b7280;
+}
+
+.profile-row strong {
+  color: #111827;
+}
+
 .status-pending {
   background: #e0f2fe;
   color: #0c4a6e;

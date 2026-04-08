@@ -23,6 +23,27 @@ export interface LoginResponse {
   token: string;
 }
 
+export interface AgentDetails {
+  userId: string;
+  userid: string;
+  fname: string;
+  lname: string;
+  email: string;
+  mobile?: string;
+  agentCode?: string;
+  creditLimit?: number;
+  address?: string;
+  isActive?: boolean;
+  role?: unknown;
+  plant?: unknown;
+  branch?: unknown;
+  route?: unknown;
+}
+
+export interface CurrentAgentResponse extends LoginResponse {
+  agent?: AgentDetails;
+}
+
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'https://production.srichakramilk.com/api';
 const STORAGE_KEY = 'indent-pwa-mock-data';
 
@@ -128,11 +149,46 @@ export async function login(identifier: string, password: string): Promise<Login
   }
 }
 
-export async function fetchCurrentAgent(token: string): Promise<LoginResponse> {
+function normalizeAgentProfile(data: any): { name: string; email: string; agent?: AgentDetails } {
+  const agent = data.agent;
+  const nameFromAgent = agent ? `${agent.fname ?? ''} ${agent.lname ?? ''}`.trim() : '';
+  const name = nameFromAgent || (data.user?.name ?? data.agentName ?? data.agent_name ?? data.name ?? agent?.userid ?? '');
+  const email = agent?.email ?? data.user?.email ?? data.agent_email ?? data.email ?? '';
+
+  if (!name) {
+    throw new Error('Profile response did not include a valid name.');
+  }
+
+  return {
+    name,
+    email,
+    agent: agent
+      ? {
+          userId: agent.userId,
+          userid: agent.userid,
+          fname: agent.fname,
+          lname: agent.lname,
+          email: agent.email,
+          mobile: agent.mobile,
+          agentCode: agent.agentCode,
+          creditLimit: agent.creditLimit,
+          address: agent.address,
+          isActive: agent.isActive,
+          role: agent.role,
+          plant: agent.plant,
+          branch: agent.branch,
+          route: agent.route
+        }
+      : undefined
+  };
+}
+
+export async function fetchCurrentAgent(token: string): Promise<CurrentAgentResponse> {
   const response = await fetch(`${API_BASE}/auth/agent-login/me`, {
     method: 'GET',
     headers: {
-      Authorization: `Bearer ${token}`
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/json'
     }
   });
 
@@ -142,20 +198,16 @@ export async function fetchCurrentAgent(token: string): Promise<LoginResponse> {
   }
 
   const data = await response.json();
-  const name = data.user?.name ?? data.agentName ?? '';
-  const email = data.user?.email ?? '';
+  const normalized = normalizeAgentProfile(data);
   const returnedToken = data.token ?? token;
-
-  if (!returnedToken) {
-    throw new Error('Session validation did not return a token.');
-  }
 
   return {
     user: {
-      name,
-      email
+      name: normalized.name,
+      email: normalized.email
     },
-    token: returnedToken
+    token: returnedToken,
+    agent: normalized.agent
   };
 }
 
