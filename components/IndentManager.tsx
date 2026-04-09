@@ -1,14 +1,16 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import {
-  createIndent,
-  deleteIndent,
-  fetchIndents,
-  Indent,
-  IndentStatus,
-  updateIndent
-} from '@/lib/api';
+
+type IndentStatus = 'pending' | 'approved' | 'rejected';
+
+interface Indent {
+  _id: string;
+  indentNumber: string;
+  status: string;
+  remarks?: string;
+  items: any[];
+}
 
 const statusOptions: IndentStatus[] = ['pending', 'approved', 'rejected'];
 
@@ -17,104 +19,99 @@ interface IndentManagerProps {
   viewOnly?: boolean;
 }
 
+const API_URL = 'https://production.srichakramilk.com/api/indents';
+
 export default function IndentManager({ filterStatus, viewOnly = false }: IndentManagerProps) {
   const [indents, setIndents] = useState<Indent[]>([]);
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [status, setStatus] = useState<IndentStatus>('pending');
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    async function loadIndents() {
-      const items = await fetchIndents();
-      setIndents(items);
+  // 🔹 Fetch Indents
+  const fetchIndentsFromAPI = async () => {
+    try {
+      const res = await fetch(API_URL);
+      const data = await res.json();
+
+      console.log('API Response:', data);
+
+      let indentsArray: Indent[] = [];
+
+      if (Array.isArray(data)) {
+        indentsArray = data;
+      } else if (Array.isArray(data.indents)) {
+        indentsArray = data.indents;
+      } else if (Array.isArray(data.data)) {
+        indentsArray = data.data;
+      } else if (data.indent) {
+        indentsArray = [data.indent];
+      }
+
+      setIndents(indentsArray);
+    } catch (error) {
+      console.error('Error fetching indents:', error);
+      setIndents([]);
+    } finally {
       setLoading(false);
     }
+  };
 
-    loadIndents();
+  useEffect(() => {
+    fetchIndentsFromAPI();
   }, []);
 
   const refresh = async () => {
-    const items = await fetchIndents();
-    setIndents(items);
+    await fetchIndentsFromAPI();
   };
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setSaving(true);
-    await createIndent({ title, description, status });
-    setTitle('');
-    setDescription('');
-    setStatus('pending');
-    await refresh();
-    setSaving(false);
+  // 🔹 Delete
+  const handleDelete = async (_id: string) => {
+    try {
+      await fetch(`${API_URL}/${_id}`, {
+        method: 'DELETE',
+      });
+      await refresh();
+    } catch (error) {
+      console.error('Delete error:', error);
+    }
   };
 
-  const handleDelete = async (id: string) => {
-    await deleteIndent(id);
-    await refresh();
+  // 🔹 Update Status
+  const handleStatusUpdate = async (_id: string, nextStatus: IndentStatus) => {
+    try {
+      await fetch(`${API_URL}/${_id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          status: nextStatus.charAt(0).toUpperCase() + nextStatus.slice(1), // convert to "Pending"
+        }),
+      });
+      await refresh();
+    } catch (error) {
+      console.error('Update error:', error);
+    }
   };
 
-  const handleStatusUpdate = async (id: string, nextStatus: IndentStatus) => {
-    await updateIndent(id, { status: nextStatus });
-    await refresh();
-  };
-
-  const visibleIndents = filterStatus ? indents.filter((indent) => indent.status === filterStatus) : indents;
+  // 🔹 Filter (handle capitalized API status)
+  const visibleIndents = Array.isArray(indents)
+    ? filterStatus
+      ? indents.filter(
+          (indent) => indent.status?.toLowerCase() === filterStatus
+        )
+      : indents
+    : [];
 
   return (
     <div className="card indent-card">
-      {viewOnly ? (
+      {viewOnly && (
         <div className="view-only-banner">
           Agent role can only view indents in this section.
         </div>
-      ) : null}
-
-      {!viewOnly && (
-        <section className="form-section">
-          <h2>Create a new indent</h2>
-          <form onSubmit={handleSubmit} className="form-grid">
-          <label>
-            Title
-            <input
-              value={title}
-              onChange={(event) => setTitle(event.target.value)}
-              required
-              placeholder="Indent title"
-            />
-          </label>
-
-          <label>
-            Description
-            <textarea
-              value={description}
-              onChange={(event) => setDescription(event.target.value)}
-              required
-              placeholder="Indent details"
-            />
-          </label>
-
-          <label>
-            Status
-            <select value={status} onChange={(event) => setStatus(event.target.value as IndentStatus)}>
-              {statusOptions.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <button type="submit" disabled={saving}>
-            {saving ? 'Saving…' : 'Create indent'}
-          </button>
-        </form>
-      </section>
       )}
 
       <section className="list-section">
         <h2>Current indents</h2>
+
         {loading ? (
           <p>Loading indents…</p>
         ) : visibleIndents.length === 0 ? (
@@ -122,18 +119,33 @@ export default function IndentManager({ filterStatus, viewOnly = false }: Indent
         ) : (
           <ul className="indent-list">
             {visibleIndents.map((indent) => (
-              <li key={indent.id} className="indent-card-small">
+              <li key={indent._id} className="indent-card-small">
                 <div>
-                  <h3>{indent.title}</h3>
-                  <p>{indent.description}</p>
-                  <span className={`pill status-${indent.status}`}>{indent.status}</span>
+                  <h3>{indent.indentNumber}</h3>
+                  <p>{indent.remarks || 'No remarks available'}</p>
+
+                  <span
+                    className={`pill status-${indent.status?.toLowerCase()}`}
+                  >
+                    {indent.status}
+                  </span>
+
+                  {/* Optional: show item count */}
+                  <p style={{ fontSize: '12px', opacity: 0.7 }}>
+                    Items: {indent.items?.length || 0}
+                  </p>
                 </div>
 
-                {!viewOnly ? (
+                {!viewOnly && (
                   <div className="indent-actions">
                     <select
-                      value={indent.status}
-                      onChange={(event) => handleStatusUpdate(indent.id, event.target.value as IndentStatus)}
+                      value={indent.status.toLowerCase()}
+                      onChange={(e) =>
+                        handleStatusUpdate(
+                          indent._id,
+                          e.target.value as IndentStatus
+                        )
+                      }
                     >
                       {statusOptions.map((option) => (
                         <option key={option} value={option}>
@@ -141,11 +153,16 @@ export default function IndentManager({ filterStatus, viewOnly = false }: Indent
                         </option>
                       ))}
                     </select>
-                    <button type="button" className="ghost-button" onClick={() => handleDelete(indent.id)}>
+
+                    <button
+                      type="button"
+                      className="ghost-button"
+                      onClick={() => handleDelete(indent._id)}
+                    >
                       Delete
                     </button>
                   </div>
-                ) : null}
+                )}
               </li>
             ))}
           </ul>

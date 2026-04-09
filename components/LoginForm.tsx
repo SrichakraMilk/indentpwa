@@ -35,13 +35,22 @@ export default function LoginForm() {
 
   return (
     <main className="page-shell">
-      <section className="card auth-card">
-        <h1>Sign in to Indent</h1>
+      <section className="card auth-card justify-center">
+        {/* Logo */}
+        <div className="flex justify-center mb-4">
+        <img
+            src="/icons/icon-192.png"
+            alt="Srichakra Logo"
+            className="w-16 h-16 object-contain"
+            style={{width:"25%"}}
+        />
+        </div>
+        <h2>Indent Management</h2>
         <p>Enter your agent identifier and password to sign in.</p>
 
         <form onSubmit={handleSubmit} className="form-grid">
           <label>
-            Agent ID
+            Agent ID / User ID
             <input
               type="text"
               value={identifier}

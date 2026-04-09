@@ -46,7 +46,7 @@ export default function ProfilePage() {
 
   return (
     <ProtectedPage>
-      <Layout title="Profile">
+      <Header title="Profile" />
         <section className="card profile-card">
           <header className="profile-header">
             <div className="profile-avatar">
@@ -91,6 +91,7 @@ export default function ProfilePage() {
             </div>
           )}
         </section>
+      <Footer />
       </Layout>
     </ProtectedPage>
   );

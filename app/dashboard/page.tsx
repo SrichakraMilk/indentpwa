@@ -2,55 +2,169 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { fetchDashboard } from '@/lib/api';
 import ProtectedPage from '@/components/ProtectedPage';
-import Layout from '@/components/Layout';
+import { useRouter } from 'next/navigation';
+
+import { fetchCurrentAgent, AgentDetails } from '@/lib/api';
+import { useAuth } from '@/components/AuthProvider';
+import Header from '@/components/Header';
+import Footer from '@/components/Footer';
+
+
+interface Indent {
+  _id: string;
+  status: string;
+}
+
+const API_URL = 'https://production.srichakramilk.com/api/indents';
 
 export default function DashboardPage() {
-  const [stats, setStats] = useState({ pending: 0, approved: 0, rejected: 0, total: 0 });
-  const [loading, setLoading] = useState(true);
+  const { token, logout } = useAuth(); // ✅ FIXED
+  const router = useRouter();
 
+  const [stats, setStats] = useState({
+    pending: 0,
+    approved: 0,
+    rejected: 0,
+    total: 0,
+  });
+
+  const [loading, setLoading] = useState(true);
+  const [agent, setAgent] = useState<AgentDetails | null>(null);
+  const [profile, setProfile] = useState<{ name: string; email: string } | null>(null);
+
+  // 🔷 Load Indent Stats
   useEffect(() => {
-    async function loadStats() {
-      const data = await fetchDashboard();
-      setStats(data);
-      setLoading(false);
-    }
+    const loadStats = async () => {
+      try {
+        const res = await fetch(API_URL);
+        const data = await res.json();
+
+        let indents: Indent[] = [];
+
+        if (Array.isArray(data)) indents = data;
+        else if (Array.isArray(data.indents)) indents = data.indents;
+        else if (Array.isArray(data.data)) indents = data.data;
+        else if (data.indent) indents = [data.indent];
+
+        const counts = {
+          pending: 0,
+          approved: 0,
+          rejected: 0,
+          total: indents.length,
+        };
+
+        indents.forEach((i) => {
+          const s = i.status?.toLowerCase();
+          if (s === 'pending') counts.pending++;
+          else if (s === 'approved') counts.approved++;
+          else if (s === 'rejected') counts.rejected++;
+        });
+
+        setStats(counts);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
 
     loadStats();
   }, []);
 
+  // 🔷 Load Profile
+  useEffect(() => {
+    if (!token) return;
+
+    (async () => {
+      try {
+        const response = await fetchCurrentAgent(token);
+        setProfile(response.user);
+        setAgent(response.agent ?? null);
+      } catch (err) {
+        console.error('Failed to load dashboard data');
+      }
+    })();
+  }, [token]);
+
+  
   return (
     <ProtectedPage>
-      <Layout title="Dashboard">
-        <section className="dashboard-grid">
-          <Link href="/indents?status=pending" className="stat-card card-link">
-            <h2>Pending</h2>
-            <p>{loading ? '…' : stats.pending}</p>
-          </Link>
-          <Link href="/indents?status=approved" className="stat-card card-link">
-            <h2>Approved</h2>
-            <p>{loading ? '…' : stats.approved}</p>
-          </Link>
-          <Link href="/indents?status=rejected" className="stat-card card-link">
-            <h2>Rejected</h2>
-            <p>{loading ? '…' : stats.rejected}</p>
-          </Link>
-          <article className="stat-card highlight">
-            <h2>Total Indents</h2>
-            <p>{loading ? '…' : stats.total}</p>
-          </article>
-        </section>
+      <div className="dashboard-container">
 
-        <section className="dashboard-actions">
-          <h3>Next steps</h3>
-          <ul>
-            <li>Click any status card to open that filtered indent list.</li>
-            <li>Agent users have view-only access in the indent manager.</li>
-            <li>Replace the mock API with your backend endpoints once ready.</li>
-          </ul>
-        </section>
-      </Layout>
+        {/* 🔷 Header */}
+        <Header title="Dashboard" />
+
+        {/* 🔷 Welcome Card */}
+        <div className="welcome-card">
+          {loading ? (
+            <>
+              <div className="skeleton title"></div>
+              <div className="skeleton line"></div>
+              <div className="skeleton line"></div>
+              <div className="skeleton line"></div>
+            </>
+          ) : (
+            <>
+              <h3>
+                Welcome {agent ? agent.fname : profile?.name?.split(' ')[0] || 'User'}
+              </h3>
+              <p>Credit Limit : ₹ {agent?.creditLimit ?? '0'}</p>
+              <p>Outstanding : ₹ {agent?.outstanding ?? '0'}</p>
+              <p>Credit Balance : ₹ {agent?.balance ?? '0'}</p>
+            </>
+          )}
+        </div>
+
+        {/* 🔷 Grid */}
+        <div className="menu-grid">
+          {loading
+            ? Array.from({ length: 6 }).map((_, i) => (
+                <div className="menu-card" key={i}>
+                  <div className="skeleton icon"></div>
+                  <div className="skeleton text"></div>
+                  <div className="skeleton badge"></div>
+                </div>
+              ))
+            : (
+              <>
+                <Link href="/indents?status=pending" className="menu-card">
+                  <img src="/icons/indent.png" />
+                  <p>Indent</p>
+                  <span>{stats.pending}</span>
+                </Link>
+
+                <div className="menu-card">
+                  <img src="/icons/payment.png" />
+                  <p>Payments</p>
+                </div>
+
+                <div className="menu-card">
+                  <img src="/icons/invoice.png" />
+                  <p>Invoice</p>
+                </div>
+
+                <div className="menu-card">
+                  <img src="/icons/orders.png" />
+                  <p>Orders</p>
+                </div>
+
+                <div className="menu-card">
+                  <img src="/icons/catalog.png" />
+                  <p>Catalog</p>
+                </div>
+
+                <div className="menu-card">
+                  <img src="/icons/help.png" />
+                  <p>Help</p>
+                </div>
+              </>
+            )}
+        </div>
+
+        <Footer />
+
+      </div>
     </ProtectedPage>
   );
 }

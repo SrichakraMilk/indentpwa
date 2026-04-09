@@ -28,13 +28,25 @@ export default function Layout({ title, children }: LayoutProps) {
   return (
     <main className="page-shell">
       <header className="topbar">
-        <div className="topbar-brand">
-          <div className="brand-mark">I</div>
-          <div>
-            <p className="brand-label">Indent PWA</p>
-            <h1>{title}</h1>
-          </div>
-        </div>
+        <div className="topbar-brand flex items-center">
+  
+  {/* 30% Logo */}
+  <div className="w-[20%] flex justify-center">
+    <img
+      src="/icons/icon-192.png"
+      alt="Srichakra Logo"
+      className="w-[20px] h-[20px] object-contain"
+      style={{width:"50%"}}
+    />
+  </div>
+
+  {/* 70% Text */}
+  <div className="w-[80%]">
+    <p className="brand-label" style={{color:"#038dd2"}}>Indent Management</p>
+    <h1>{title}</h1>
+  </div>
+
+</div>
 
         <div className="topbar-controls">
           <div className="search-wrapper">
@@ -58,8 +70,8 @@ export default function Layout({ title, children }: LayoutProps) {
               onClick={() => setMenuOpen((current) => !current)}
               aria-expanded={menuOpen}
             >
-              <span className="user-avatar">{initials}</span>
-              <span className="user-name">{user?.name ?? 'Account'}</span>
+              <span className="user-avatar" style={{background:"#038dd2"}}>{initials}</span>
+              <span className="user-name" style={{color:"#038dd2"}}>{user?.name ?? 'Account'} </span>
             </button>
 
             {menuOpen ? (
