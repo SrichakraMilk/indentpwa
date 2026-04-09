@@ -15,11 +15,11 @@ export default function ProtectedPage({ children }: { children: React.ReactNode 
   }, [router, user, initializing]);
 
   if (initializing) {
-    return <div className="page-shell"><div className="card">Checking session…</div></div>;
+    return null;
   }
 
   if (!user) {
-    return <div className="page-shell"><div className="card">Redirecting to login…</div></div>;
+    return null;
   }
 
   return <>{children}</>;

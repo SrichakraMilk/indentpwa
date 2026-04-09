@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import ProtectedPage from '@/components/ProtectedPage';
-import Layout from '@/components/Layout';
+import Header from '@/components/Header';
+import Footer from '@/components/Footer';
 import { fetchCurrentAgent, AgentDetails } from '@/lib/api';
 import { useAuth } from '@/components/AuthProvider';
 
@@ -46,7 +47,10 @@ export default function ProfilePage() {
 
   return (
     <ProtectedPage>
-      <Header title="Profile" />
+      <div className="dashboard-container">
+      <Header />
+      <main className="page-shell">
+        <h1 className="page-title">Profile</h1>
         <section className="card profile-card">
           <header className="profile-header">
             <div className="profile-avatar">
@@ -91,8 +95,9 @@ export default function ProfilePage() {
             </div>
           )}
         </section>
+      </main>
       <Footer />
-      </Layout>
+      </div>
     </ProtectedPage>
   );
 }

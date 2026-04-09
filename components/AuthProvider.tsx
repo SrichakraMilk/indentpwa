@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { fetchCurrentAgent, login as apiLogin } from '@/lib/api';
+import { login as apiLogin, validateSessionOnBackend } from '@/lib/api';
 
 import type { AgentDetails } from '@/lib/api';
 
@@ -42,7 +42,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
           throw new Error('Missing token');
         }
 
-        const response = await fetchCurrentAgent(parsed.token);
+        const response = await validateSessionOnBackend(parsed.token);
         setUser(response.user);
         setAgent(response.agent ?? parsed.agent ?? null);
         setToken(response.token);
@@ -63,7 +63,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
 
   const login = async (identifier: string, password: string) => {
     const response = await apiLogin(identifier, password);
-    const profile = await fetchCurrentAgent(response.token);
+    const profile = await validateSessionOnBackend(response.token);
     setUser(profile.user);
     setAgent(profile.agent ?? null);
     setToken(profile.token);

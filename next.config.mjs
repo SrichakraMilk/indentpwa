@@ -1,15 +1,5 @@
 const nextConfig = {
-  reactStrictMode: true,
-  async rewrites() {
-    return {
-      beforeFiles: [
-        {
-          source: '/api/:path*',
-          destination: 'https://production.sricharamilk.com/api/:path*'
-        }
-      ]
-    };
-  }
+  reactStrictMode: true
 };
 
 export default nextConfig;

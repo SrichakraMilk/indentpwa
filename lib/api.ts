@@ -1,13 +1,5 @@
 export type IndentStatus = 'pending' | 'approved' | 'rejected';
 
-export interface Indent {
-  id: string;
-  title: string;
-  description: string;
-  status: IndentStatus;
-  createdAt: string;
-}
-
 export interface DashboardStats {
   pending: number;
   approved: number;
@@ -32,6 +24,8 @@ export interface AgentDetails {
   mobile?: string;
   agentCode?: string;
   creditLimit?: number;
+  outstanding?: number;
+  balance?: number;
   address?: string;
   isActive?: boolean;
   role?: unknown;
@@ -45,56 +39,61 @@ export interface CurrentAgentResponse extends LoginResponse {
 }
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'https://production.srichakramilk.com/api';
-const STORAGE_KEY = 'indent-pwa-mock-data';
+const INDENTS_ENDPOINT = `${API_BASE}/indents`;
+const CATEGORIES_ENDPOINT = `${API_BASE}/categories`;
+const PRODUCTS_ENDPOINT = `${API_BASE}/products`;
 
-const defaultIndents: Indent[] = [
-  {
-    id: 'indent-1',
-    title: 'Purchase office supplies',
-    description: 'Request stationery and printer ink for the main office.',
-    status: 'pending',
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: 'indent-2',
-    title: 'Repair workstation',
-    description: 'Fix the broken standing desk motor in room 4.',
-    status: 'approved',
-    createdAt: new Date().toISOString()
-  }
-];
+export interface IndentItem {
+  categoryId?: string;
+  categoryName?: string;
+  productId?: string;
+  productName?: string;
+  qty: number;
+}
+
+export interface IndentRecord {
+  _id: string;
+  indentNumber: string;
+  status: string;
+  remarks?: string;
+  items: IndentItem[];
+}
+
+export interface Category {
+  _id: string;
+  name: string;
+}
+
+export interface Product {
+  id: string;
+  name: string;
+  categoryId: string;
+}
 
 const delay = (ms = 300) => new Promise((resolve) => setTimeout(resolve, ms));
 
-function loadStoredIndents(): Indent[] {
-  if (typeof window === 'undefined') {
-    return defaultIndents;
+function normalizeIndentsPayload(data: unknown): IndentRecord[] {
+  if (Array.isArray(data)) return data as IndentRecord[];
+  if (data && typeof data === 'object') {
+    const value = data as { indents?: unknown; data?: unknown; indent?: unknown };
+    if (Array.isArray(value.indents)) return value.indents as IndentRecord[];
+    if (Array.isArray(value.data)) return value.data as IndentRecord[];
+    if (value.indent && typeof value.indent === 'object') return [value.indent as IndentRecord];
   }
-
-  const json = window.localStorage.getItem(STORAGE_KEY);
-  if (!json) {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultIndents));
-    return defaultIndents;
-  }
-
-  try {
-    return JSON.parse(json) as Indent[];
-  } catch {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultIndents));
-    return defaultIndents;
-  }
-}
-
-function saveStoredIndents(indents: Indent[]) {
-  if (typeof window === 'undefined') {
-    return;
-  }
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(indents));
+  return [];
 }
 
 export async function login(identifier: string, password: string): Promise<LoginResponse> {
   const url = `${API_BASE}/auth/agent-login`;
-  const payload = { identifier, password };
+  const payload = {
+    identifier,
+    userid: identifier,
+    userId: identifier,
+    agentCode: identifier,
+    email: identifier,
+    mobile: identifier,
+    password
+  };
   
   try {
     console.log('[Login] Sending to', url, 'with payload:', payload);
@@ -122,7 +121,19 @@ export async function login(identifier: string, password: string): Promise<Login
         // Not JSON, that's ok
       }
       
-      throw new Error(`Login failed: ${responseText || response.statusText}`);
+      let apiMessage = responseText || response.statusText;
+      try {
+        const parsed = JSON.parse(responseText) as { message?: string; error?: string };
+        apiMessage = parsed.message ?? parsed.error ?? apiMessage;
+      } catch {
+        // response not JSON
+      }
+
+      if (response.status === 401) {
+        throw new Error(apiMessage || 'Invalid credentials. Please check Agent ID and password.');
+      }
+
+      throw new Error(apiMessage || 'Login failed');
     }
 
     const data = JSON.parse(responseText);
@@ -211,9 +222,112 @@ export async function fetchCurrentAgent(token: string): Promise<CurrentAgentResp
   };
 }
 
+export async function validateSessionOnBackend(token: string): Promise<CurrentAgentResponse> {
+  const response = await fetch('/api/session', {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/json'
+    }
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Unable to validate session: ${errorText || response.statusText}`);
+  }
+
+  const data = await response.json();
+  const normalized = normalizeAgentProfile(data);
+  const returnedToken = data.token ?? token;
+
+  return {
+    user: {
+      name: normalized.name,
+      email: normalized.email
+    },
+    token: returnedToken,
+    agent: normalized.agent
+  };
+}
+
+export async function fetchIndentsApi(): Promise<IndentRecord[]> {
+  const response = await fetch(INDENTS_ENDPOINT);
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Unable to fetch indents: ${errorText || response.statusText}`);
+  }
+  const data = await response.json();
+  return normalizeIndentsPayload(data);
+}
+
+export async function deleteIndentApi(id: string): Promise<void> {
+  const response = await fetch(`${INDENTS_ENDPOINT}/${id}`, { method: 'DELETE' });
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Unable to delete indent: ${errorText || response.statusText}`);
+  }
+}
+
+export async function updateIndentStatusApi(id: string, nextStatus: IndentStatus): Promise<void> {
+  const response = await fetch(`${INDENTS_ENDPOINT}/${id}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      status: nextStatus.charAt(0).toUpperCase() + nextStatus.slice(1)
+    })
+  });
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Unable to update indent: ${errorText || response.statusText}`);
+  }
+}
+
+export async function createIndentApi(input: { remarks?: string; items: IndentItem[] }): Promise<void> {
+  const response = await fetch(INDENTS_ENDPOINT, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(input)
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Unable to create indent: ${errorText || response.statusText}`);
+  }
+}
+
+export async function fetchCategoriesApi(): Promise<Category[]> {
+  const response = await fetch(CATEGORIES_ENDPOINT);
+  if (!response.ok) {
+    return [];
+  }
+  const data = await response.json();
+  if (Array.isArray(data)) return data as Category[];
+  if (data && typeof data === 'object' && Array.isArray((data as { categories?: unknown }).categories)) {
+    return (data as { categories: Category[] }).categories;
+  }
+  return [];
+}
+
+export async function fetchProductsApi(): Promise<Product[]> {
+  const response = await fetch(PRODUCTS_ENDPOINT);
+  if (!response.ok) {
+    return [];
+  }
+  const data = await response.json();
+  if (Array.isArray(data)) return data as Product[];
+  if (data && typeof data === 'object' && Array.isArray((data as { products?: unknown }).products)) {
+    return (data as { products: Product[] }).products;
+  }
+  return [];
+}
+
 export async function fetchDashboard(): Promise<DashboardStats> {
-  await delay();
-  const indents = loadStoredIndents();
+  await delay(100);
+  const indents = await fetchIndentsApi();
   const pending = indents.filter((item) => item.status === 'pending').length;
   const approved = indents.filter((item) => item.status === 'approved').length;
   const rejected = indents.filter((item) => item.status === 'rejected').length;
@@ -223,41 +337,4 @@ export async function fetchDashboard(): Promise<DashboardStats> {
     rejected,
     total: indents.length
   };
-}
-
-export async function fetchIndents(): Promise<Indent[]> {
-  await delay();
-  return loadStoredIndents();
-}
-
-export async function createIndent(data: Omit<Indent, 'id' | 'createdAt'>): Promise<Indent> {
-  await delay();
-  const indents = loadStoredIndents();
-  const newIndent: Indent = {
-    id: `indent-${Date.now()}`,
-    createdAt: new Date().toISOString(),
-    ...data
-  };
-  const nextIndents = [newIndent, ...indents];
-  saveStoredIndents(nextIndents);
-  return newIndent;
-}
-
-export async function updateIndent(id: string, update: Partial<Pick<Indent, 'title' | 'description' | 'status'>>): Promise<Indent> {
-  await delay();
-  const indents = loadStoredIndents();
-  const nextIndents = indents.map((item) => (item.id === id ? { ...item, ...update } : item));
-  saveStoredIndents(nextIndents);
-  const updated = nextIndents.find((item) => item.id === id);
-  if (!updated) {
-    throw new Error('Indent not found');
-  }
-  return updated;
-}
-
-export async function deleteIndent(id: string): Promise<void> {
-  await delay();
-  const indents = loadStoredIndents();
-  const nextIndents = indents.filter((item) => item.id !== id);
-  saveStoredIndents(nextIndents);
 }

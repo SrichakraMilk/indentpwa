@@ -3,24 +3,15 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import ProtectedPage from '@/components/ProtectedPage';
-import { useRouter } from 'next/navigation';
 
-import { fetchCurrentAgent, AgentDetails } from '@/lib/api';
+import { fetchCurrentAgent, AgentDetails, fetchIndentsApi, IndentRecord } from '@/lib/api';
 import { useAuth } from '@/components/AuthProvider';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
 
-interface Indent {
-  _id: string;
-  status: string;
-}
-
-const API_URL = 'https://production.srichakramilk.com/api/indents';
-
 export default function DashboardPage() {
-  const { token, logout } = useAuth(); // ✅ FIXED
-  const router = useRouter();
+  const { token } = useAuth();
 
   const [stats, setStats] = useState({
     pending: 0,
@@ -37,15 +28,7 @@ export default function DashboardPage() {
   useEffect(() => {
     const loadStats = async () => {
       try {
-        const res = await fetch(API_URL);
-        const data = await res.json();
-
-        let indents: Indent[] = [];
-
-        if (Array.isArray(data)) indents = data;
-        else if (Array.isArray(data.indents)) indents = data.indents;
-        else if (Array.isArray(data.data)) indents = data.data;
-        else if (data.indent) indents = [data.indent];
+        const indents: IndentRecord[] = await fetchIndentsApi();
 
         const counts = {
           pending: 0,
@@ -93,7 +76,9 @@ export default function DashboardPage() {
       <div className="dashboard-container">
 
         {/* 🔷 Header */}
-        <Header title="Dashboard" />
+        <Header />
+        <main className="page-shell">
+          <h1 className="page-title">Dashboard</h1>
 
         {/* 🔷 Welcome Card */}
         <div className="welcome-card">
@@ -162,6 +147,7 @@ export default function DashboardPage() {
             )}
         </div>
 
+        </main>
         <Footer />
 
       </div>

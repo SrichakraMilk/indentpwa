@@ -27,7 +27,7 @@ export default function LoginForm() {
       await login(identifier, password);
       router.push('/dashboard');
     } catch (err) {
-      setError('Login failed. Please check your credentials.');
+      setError(err instanceof Error ? err.message : 'Login failed. Please check your credentials.');
     } finally {
       setLoading(false);
     }
