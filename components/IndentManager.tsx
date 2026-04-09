@@ -9,7 +9,13 @@ import {
   updateIndentStatusApi
 } from '@/lib/api';
 
-const statusOptions: IndentStatus[] = ['pending', 'approved', 'rejected'];
+const statusOptions: IndentStatus[] = ['pending', 'approved', 'rejected', 'fulfilled'];
+const statusLabelMap: Record<IndentStatus, string> = {
+  pending: 'Pending',
+  approved: 'Approved',
+  rejected: 'Rejected',
+  fulfilled: 'Fulfilled'
+};
 
 interface IndentManagerProps {
   filterStatus?: IndentStatus;
@@ -20,6 +26,7 @@ interface IndentManagerProps {
 export default function IndentManager({ filterStatus, viewOnly = false, refreshKey = 0 }: IndentManagerProps) {
   const [indents, setIndents] = useState<IndentRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedIndent, setSelectedIndent] = useState<IndentRecord | null>(null);
 
   const fetchIndentsFromAPI = async () => {
     try {
@@ -67,6 +74,9 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
       : indents
     : [];
 
+  const cardTitlePrefix = filterStatus ? statusLabelMap[filterStatus] : 'Indent';
+  const listHeading = filterStatus ? `${statusLabelMap[filterStatus]} Indents` : 'All Indents';
+
   return (
     <div className="card indent-card">
       {viewOnly && (
@@ -76,7 +86,7 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
       )}
 
       <section className="list-section">
-        <h2>Current indents</h2>
+        <h2>{listHeading}</h2>
 
         {loading ? (
           <p>Loading indents…</p>
@@ -85,9 +95,13 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
         ) : (
           <ul className="indent-list">
             {visibleIndents.map((indent) => (
-              <li key={indent._id} className="indent-card-small">
+              <li
+                key={indent._id}
+                className="indent-card-small indent-card-clickable"
+                onClick={() => setSelectedIndent(indent)}
+              >
                 <div>
-                  <h3>{indent.indentNumber}</h3>
+                  <h3>{cardTitlePrefix} - {indent.indentNumber}</h3>
                   <p>{indent.remarks || 'No remarks available'}</p>
 
                   <span
@@ -103,7 +117,7 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
                 </div>
 
                 {!viewOnly && (
-                  <div className="indent-actions">
+                  <div className="indent-actions" onClick={(e) => e.stopPropagation()}>
                     <select
                       value={indent.status.toLowerCase()}
                       onChange={(e) =>
@@ -134,6 +148,44 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
           </ul>
         )}
       </section>
+
+      {selectedIndent ? (
+        <div className="indent-details-overlay" onClick={() => setSelectedIndent(null)}>
+          <div className="indent-details-card" onClick={(e) => e.stopPropagation()}>
+            <div className="indent-details-header">
+              <h3>{selectedIndent.indentNumber}</h3>
+              <button
+                type="button"
+                className="indent-details-close"
+                onClick={() => setSelectedIndent(null)}
+                aria-label="Close indent details"
+              >
+                ×
+              </button>
+            </div>
+            <p className="indent-details-remarks">{selectedIndent.remarks || 'No remarks available'}</p>
+            <p>
+              Status:{' '}
+              <span className={`pill status-${selectedIndent.status?.toLowerCase()}`}>
+                {selectedIndent.status}
+              </span>
+            </p>
+            <h4>Items</h4>
+            {selectedIndent.items?.length ? (
+              <ul className="indent-details-items">
+                {selectedIndent.items.map((item, idx) => (
+                  <li key={`${selectedIndent._id}-${idx}`}>
+                    <span>{item.productName || item.productId || 'Unknown product'}</span>
+                    <span>{item.qty}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p>No items available.</p>
+            )}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

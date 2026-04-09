@@ -394,6 +394,60 @@ button:disabled {
   gap: 0.75rem;
   align-items: center;
 }
+.indent-card-clickable {
+  cursor: pointer;
+}
+.indent-details-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.35);
+  z-index: 2100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+.indent-details-card {
+  width: min(560px, 100%);
+  background: #fff;
+  border-radius: 12px;
+  padding: 1rem;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.2);
+}
+.indent-details-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+}
+.indent-details-header h3 {
+  margin: 0;
+}
+.indent-details-close {
+  background: transparent;
+  color: #111827;
+  font-size: 1.25rem;
+  padding: 0.25rem 0.5rem;
+}
+.indent-details-remarks {
+  margin: 0.75rem 0;
+  color: #334155;
+}
+.indent-details-items {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+.indent-details-items li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+}
 
 .pill {
   display: inline-flex;
@@ -470,6 +524,34 @@ button:disabled {
   color: #991b1b;
 }
 
+.status-fulfilled {
+  background: #ede9fe;
+  color: #5b21b6;
+}
+
+.indent-status-tabs {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.indent-status-tab {
+  padding: 0.5rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #334155;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.indent-status-tab.active {
+  background: #0e7490;
+  border-color: #0e7490;
+  color: #fff;
+}
+
 @media (max-width: 640px) {
   .page-shell {
     width: calc(100% - 1.5rem);
@@ -542,15 +624,29 @@ button:disabled {
   justify-content: flex-end;
   margin: 1rem 0;
 }
+.indents-header-row {
+  display: flex;
+  width: 100%;
+  min-height: 50px;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: nowrap;
+}
+.indents-header-row .page-title {
+  margin-bottom: 0;
+}
 .create-indent-btn {
   background: #0e7490;
   color: #fff;
   border: none;
   border-radius: 6px;
-  padding: 0.6rem 1.2rem;
+  padding: 0.4rem 0.8rem;
   font-weight: 600;
-  font-size: 1rem;
+  font-size: 0.85rem;
   cursor: pointer;
+  margin-left: auto;
 }
 
 .indent-modal-overlay {
@@ -567,86 +663,94 @@ button:disabled {
 }
 .indent-modal-card {
   background: #fff;
-  border-radius: 8px;
+  border-radius: 14px;
   padding: 24px;
-  min-width: 340px;
-  max-width: 400px;
+  width: min(860px, calc(100vw - 2rem));
+  max-height: calc(100vh - 2rem);
+  overflow: auto;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
 }
-.indent-modal-title {
-  margin-top: 0;
+.indent-modal-header {
+  margin-bottom: 1rem;
 }
-.indent-modal-fields-row {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 4px;
-  font-size: 0.95rem;
+.indent-modal-title {
+  margin: 0;
+}
+.indent-modal-subtitle {
+  margin: 0.35rem 0 0;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+.indent-modal-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 0.75rem;
 }
 .indent-modal-label {
   margin: 0;
-  font-size: 0.95em;
+  font-size: 0.9rem;
   font-weight: 500;
 }
 .indent-modal-control {
-  font-size: 0.95em;
-  margin-left: 4px;
-}
-.indent-modal-control-error {
-  border: 2px solid #d32f2f;
-}
-.indent-modal-qty {
-  width: 60px;
+  margin-top: 0.35rem;
 }
 .indent-modal-actions-row {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 12px;
 }
 .indent-modal-add-btn {
   background: #0e7490;
   color: #fff;
   border: none;
-  border-radius: 6px;
-  padding: 0.3rem 1.2rem;
+  border-radius: 10px;
+  padding: 0.6rem 1rem;
   font-weight: 600;
-  font-size: 1.05em;
+  font-size: 0.95rem;
   cursor: pointer;
+}
+.indent-modal-summary {
+  color: #475569;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.indent-modal-empty {
+  border: 1px dashed #cbd5e1;
+  border-radius: 10px;
+  padding: 1rem;
+  color: #64748b;
+  text-align: center;
+  margin-top: 0.5rem;
 }
 .indent-modal-table {
   width: 100%;
-  margin-top: 20px;
+  margin-top: 12px;
   border-collapse: collapse;
+  font-size: 0.9rem;
 }
 .indent-modal-table-header-row {
-  background: #f3f4f6;
+  background: #f8fafc;
 }
 .indent-modal-cell-left {
   text-align: left;
-  padding: 6px;
+  padding: 10px 8px;
+  border-bottom: 1px solid #e2e8f0;
 }
 .indent-modal-cell-right {
   text-align: right;
-  padding: 6px;
+  padding: 10px 8px;
+  border-bottom: 1px solid #e2e8f0;
 }
 .indent-modal-delete-btn {
-  background: none;
+  background: #fee2e2;
   border: none;
   color: #d32f2f;
-  font-size: 18px;
+  font-size: 0.85rem;
   cursor: pointer;
-  padding: 0;
-}
-.indent-modal-total-label {
-  text-align: right;
-  font-weight: 600;
-  padding: 6px;
-}
-.indent-modal-total-value {
-  text-align: right;
-  font-weight: 600;
-  padding: 6px;
+  border-radius: 8px;
+  padding: 0.35rem 0.65rem;
 }
 .indent-modal-footer-actions {
   display: flex;
@@ -671,6 +775,33 @@ button:disabled {
   padding: 0.5rem 1.2rem;
   font-weight: 600;
   font-size: 1rem;
+}
+.indent-modal-control-error {
+  border: 2px solid #d32f2f;
+}
+
+@media (max-width: 860px) {
+  .indent-modal-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .indent-modal-grid {
+    grid-template-columns: 1fr;
+  }
+  .indent-modal-actions-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+  .indent-modal-summary {
+    text-align: center;
+  }
+  .indents-header-row {
+    flex-direction: row;
+    align-items: center;
+  }
 }
 
 .icon-btn{

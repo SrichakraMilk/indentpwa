@@ -1,4 +1,4 @@
-export type IndentStatus = 'pending' | 'approved' | 'rejected';
+export type IndentStatus = 'pending' | 'approved' | 'rejected' | 'fulfilled';
 
 export interface DashboardStats {
   pending: number;
@@ -38,10 +38,12 @@ export interface CurrentAgentResponse extends LoginResponse {
   agent?: AgentDetails;
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'https://production.srichakramilk.com/api';
-const INDENTS_ENDPOINT = `${API_BASE}/indents`;
-const CATEGORIES_ENDPOINT = `${API_BASE}/categories`;
-const PRODUCTS_ENDPOINT = `${API_BASE}/products`;
+const AUTH_LOGIN_ENDPOINT = '/api/auth/login';
+const AUTH_ME_ENDPOINT = '/api/auth/me';
+const INDENTS_ENDPOINT = '/api/indents';
+const CATEGORIES_ENDPOINT = '/api/categories';
+const PRODUCTS_ENDPOINT = '/api/products';
+const AUTH_STORAGE_KEY = 'indent-pwa-auth';
 
 export interface IndentItem {
   categoryId?: string;
@@ -68,6 +70,42 @@ export interface Product {
   id: string;
   name: string;
   categoryId: string;
+  size: string;
+}
+
+type RawProduct = {
+  _id?: string;
+  id?: string;
+  name?: string;
+  categoryId?: string;
+  size?: string;
+  category?: { _id?: string };
+};
+
+function getAuthToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.localStorage.getItem(AUTH_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { token?: string };
+    return parsed.token ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function buildAuthHeaders(contentType = false): HeadersInit {
+  const token = getAuthToken();
+  const headers: Record<string, string> = {
+    Accept: 'application/json'
+  };
+  if (contentType) {
+    headers['Content-Type'] = 'application/json';
+  }
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  return headers;
 }
 
 const delay = (ms = 300) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -84,7 +122,7 @@ function normalizeIndentsPayload(data: unknown): IndentRecord[] {
 }
 
 export async function login(identifier: string, password: string): Promise<LoginResponse> {
-  const url = `${API_BASE}/auth/agent-login`;
+  const url = AUTH_LOGIN_ENDPOINT;
   const payload = {
     identifier,
     userid: identifier,
@@ -195,7 +233,7 @@ function normalizeAgentProfile(data: any): { name: string; email: string; agent?
 }
 
 export async function fetchCurrentAgent(token: string): Promise<CurrentAgentResponse> {
-  const response = await fetch(`${API_BASE}/auth/agent-login/me`, {
+  const response = await fetch(AUTH_ME_ENDPOINT, {
     method: 'GET',
     headers: {
       Authorization: `Bearer ${token}`,
@@ -223,7 +261,7 @@ export async function fetchCurrentAgent(token: string): Promise<CurrentAgentResp
 }
 
 export async function validateSessionOnBackend(token: string): Promise<CurrentAgentResponse> {
-  const response = await fetch('/api/session', {
+  const response = await fetch(AUTH_ME_ENDPOINT, {
     method: 'GET',
     headers: {
       Authorization: `Bearer ${token}`,
@@ -261,7 +299,10 @@ export async function fetchIndentsApi(): Promise<IndentRecord[]> {
 }
 
 export async function deleteIndentApi(id: string): Promise<void> {
-  const response = await fetch(`${INDENTS_ENDPOINT}/${id}`, { method: 'DELETE' });
+  const response = await fetch(`${INDENTS_ENDPOINT}/${id}`, {
+    method: 'DELETE',
+    headers: buildAuthHeaders()
+  });
   if (!response.ok) {
     const errorText = await response.text();
     throw new Error(`Unable to delete indent: ${errorText || response.statusText}`);
@@ -271,9 +312,7 @@ export async function deleteIndentApi(id: string): Promise<void> {
 export async function updateIndentStatusApi(id: string, nextStatus: IndentStatus): Promise<void> {
   const response = await fetch(`${INDENTS_ENDPOINT}/${id}`, {
     method: 'PATCH',
-    headers: {
-      'Content-Type': 'application/json'
-    },
+    headers: buildAuthHeaders(true),
     body: JSON.stringify({
       status: nextStatus.charAt(0).toUpperCase() + nextStatus.slice(1)
     })
@@ -287,9 +326,7 @@ export async function updateIndentStatusApi(id: string, nextStatus: IndentStatus
 export async function createIndentApi(input: { remarks?: string; items: IndentItem[] }): Promise<void> {
   const response = await fetch(INDENTS_ENDPOINT, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
+    headers: buildAuthHeaders(true),
     body: JSON.stringify(input)
   });
 
@@ -305,11 +342,13 @@ export async function fetchCategoriesApi(): Promise<Category[]> {
     return [];
   }
   const data = await response.json();
-  if (Array.isArray(data)) return data as Category[];
-  if (data && typeof data === 'object' && Array.isArray((data as { categories?: unknown }).categories)) {
-    return (data as { categories: Category[] }).categories;
-  }
-  return [];
+  const categories = Array.isArray(data)
+    ? (data as Category[])
+    : data && typeof data === 'object' && Array.isArray((data as { categories?: unknown }).categories)
+      ? (data as { categories: Category[] }).categories
+      : [];
+
+  return [...categories].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
 }
 
 export async function fetchProductsApi(): Promise<Product[]> {
@@ -318,11 +357,22 @@ export async function fetchProductsApi(): Promise<Product[]> {
     return [];
   }
   const data = await response.json();
-  if (Array.isArray(data)) return data as Product[];
-  if (data && typeof data === 'object' && Array.isArray((data as { products?: unknown }).products)) {
-    return (data as { products: Product[] }).products;
-  }
-  return [];
+  const rawProducts = Array.isArray(data)
+    ? (data as RawProduct[])
+    : data && typeof data === 'object' && Array.isArray((data as { products?: unknown }).products)
+      ? ((data as { products: RawProduct[] }).products ?? [])
+      : [];
+
+  const normalized: Product[] = rawProducts.reduce((acc, item) => {
+    const id = item.id ?? item._id ?? '';
+    const categoryId = item.categoryId ?? item.category?._id ?? '';
+    const name = item.name ?? '';
+    if (!id || !categoryId || !name) return acc;
+    acc.push({ id, categoryId, name, size: item.size ?? '' });
+    return acc;
+  }, [] as Product[]);
+
+  return normalized.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
 }
 
 export async function fetchDashboard(): Promise<DashboardStats> {
