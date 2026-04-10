@@ -1,13 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'https://production.srichakramilk.com/api';
+import { getUpstreamApiBase } from '@/lib/upstreamApiBase';
 
+function parseUpstreamBody(text: string): unknown {
+  if (!text) return {};
+  try {
+    return JSON.parse(text) as unknown;
+  } catch {
+    return { message: text };
+  }
+}
+
+/** Plantautomation uses PATCH/DELETE /api/indents?id=… not /indents/:id */
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const body = await request.text();
     const authHeader = request.headers.get('authorization');
-    const response = await fetch(`${API_BASE}/indents/${id}`, {
+    const response = await fetch(`${getUpstreamApiBase()}/indents?id=${encodeURIComponent(id)}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -18,8 +28,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     });
 
     const text = await response.text();
-    const payload = text ? JSON.parse(text) : {};
-    return NextResponse.json(payload, { status: response.status });
+    return NextResponse.json(parseUpstreamBody(text), { status: response.status });
   } catch {
     return NextResponse.json({ message: 'Unable to update indent' }, { status: 500 });
   }
@@ -29,7 +38,7 @@ export async function DELETE(_request: NextRequest, { params }: { params: Promis
   try {
     const { id } = await params;
     const authHeader = _request.headers.get('authorization');
-    const response = await fetch(`${API_BASE}/indents/${id}`, {
+    const response = await fetch(`${getUpstreamApiBase()}/indents?id=${encodeURIComponent(id)}`, {
       method: 'DELETE',
       headers: {
         Accept: 'application/json',
@@ -38,8 +47,7 @@ export async function DELETE(_request: NextRequest, { params }: { params: Promis
     });
 
     const text = await response.text();
-    const payload = text ? JSON.parse(text) : {};
-    return NextResponse.json(payload, { status: response.status });
+    return NextResponse.json(parseUpstreamBody(text), { status: response.status });
   } catch {
     return NextResponse.json({ message: 'Unable to delete indent' }, { status: 500 });
   }

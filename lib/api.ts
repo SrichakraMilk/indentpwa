@@ -16,6 +16,9 @@ export interface LoginResponse {
 }
 
 export interface AgentDetails {
+  /** Mongo user / agent document id when returned by API */
+  _id?: string;
+  id?: string;
   userId: string;
   userid: string;
   fname: string;
@@ -32,6 +35,11 @@ export interface AgentDetails {
   plant?: unknown;
   branch?: unknown;
   route?: unknown;
+  department?: unknown;
+  executive?: unknown;
+  branchManager?: unknown;
+  areaManager?: unknown;
+  gmSales?: unknown;
 }
 
 export interface CurrentAgentResponse extends LoginResponse {
@@ -50,7 +58,10 @@ export interface IndentItem {
   categoryName?: string;
   productId?: string;
   productName?: string;
-  qty: number;
+  /** Line-item pack size (stored on indent item; API may use `quantity` for qty). */
+  size?: string;
+  qty?: number;
+  quantity?: number;
 }
 
 export interface IndentRecord {
@@ -94,8 +105,20 @@ function getAuthToken(): string | null {
   }
 }
 
-function buildAuthHeaders(contentType = false): HeadersInit {
-  const token = getAuthToken();
+/** Normalize stored / passed token (trim, strip accidental `Bearer ` prefix). */
+function resolveAuthToken(explicit?: string | null): string | null {
+  const fromStorage =
+    explicit != null && String(explicit).trim() !== '' ? String(explicit) : getAuthToken();
+  if (fromStorage == null) return null;
+  let t = fromStorage.trim();
+  if (t.startsWith('Bearer ')) {
+    t = t.slice(7).trim();
+  }
+  return t.length > 0 ? t : null;
+}
+
+function buildAuthHeaders(contentType = false, tokenOverride?: string | null): HeadersInit {
+  const token = resolveAuthToken(tokenOverride);
   const headers: Record<string, string> = {
     Accept: 'application/json'
   };
@@ -213,20 +236,29 @@ function normalizeAgentProfile(data: any): { name: string; email: string; agent?
     email,
     agent: agent
       ? {
-          userId: agent.userId,
-          userid: agent.userid,
+          _id: agent._id ?? agent.id,
+          id: agent.id ?? agent._id,
+          userId: agent.userId ?? agent.userid ?? agent._id ?? '',
+          userid: agent.userid ?? agent.userId ?? agent._id ?? '',
           fname: agent.fname,
           lname: agent.lname,
           email: agent.email,
           mobile: agent.mobile,
           agentCode: agent.agentCode,
           creditLimit: agent.creditLimit,
+          outstanding: agent.outstanding,
+          balance: agent.balance,
           address: agent.address,
           isActive: agent.isActive,
           role: agent.role,
           plant: agent.plant,
           branch: agent.branch,
-          route: agent.route
+          route: agent.route,
+          department: agent.department,
+          executive: agent.executive,
+          branchManager: agent.branchManager,
+          areaManager: agent.areaManager,
+          gmSales: agent.gmSales
         }
       : undefined
   };
@@ -298,10 +330,10 @@ export async function fetchIndentsApi(): Promise<IndentRecord[]> {
   return normalizeIndentsPayload(data);
 }
 
-export async function deleteIndentApi(id: string): Promise<void> {
+export async function deleteIndentApi(id: string, token?: string | null): Promise<void> {
   const response = await fetch(`${INDENTS_ENDPOINT}/${id}`, {
     method: 'DELETE',
-    headers: buildAuthHeaders()
+    headers: buildAuthHeaders(false, token)
   });
   if (!response.ok) {
     const errorText = await response.text();
@@ -309,10 +341,10 @@ export async function deleteIndentApi(id: string): Promise<void> {
   }
 }
 
-export async function updateIndentStatusApi(id: string, nextStatus: IndentStatus): Promise<void> {
+export async function updateIndentStatusApi(id: string, nextStatus: IndentStatus, token?: string | null): Promise<void> {
   const response = await fetch(`${INDENTS_ENDPOINT}/${id}`, {
     method: 'PATCH',
-    headers: buildAuthHeaders(true),
+    headers: buildAuthHeaders(true, token),
     body: JSON.stringify({
       status: nextStatus.charAt(0).toUpperCase() + nextStatus.slice(1)
     })
@@ -323,11 +355,38 @@ export async function updateIndentStatusApi(id: string, nextStatus: IndentStatus
   }
 }
 
-export async function createIndentApi(input: { remarks?: string; items: IndentItem[] }): Promise<void> {
+export interface CreateIndentRequest {
+  route?: string;
+  items: Array<{
+    category: string;
+    product: string;
+    /** Plantautomation `Indent` model uses `quantity` (not `qty`). */
+    quantity: number;
+    size?: string;
+  }>;
+  plant?: string;
+  department?: string;
+  remarks?: string;
+  agent?: string;
+  executive?: string;
+  branchManager?: string;
+  areaManager?: string;
+  gmSales?: string;
+}
+
+function omitUndefined<T extends Record<string, unknown>>(obj: T): Partial<T> {
+  return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined)) as Partial<T>;
+}
+
+export async function createIndentApi(input: CreateIndentRequest, token?: string | null): Promise<void> {
+  if (!resolveAuthToken(token)) {
+    throw new Error('Your session has no token. Please sign out and sign in again.');
+  }
+  const body = omitUndefined({ ...input } as Record<string, unknown>);
   const response = await fetch(INDENTS_ENDPOINT, {
     method: 'POST',
-    headers: buildAuthHeaders(true),
-    body: JSON.stringify(input)
+    headers: buildAuthHeaders(true, token),
+    body: JSON.stringify(body)
   });
 
   if (!response.ok) {

@@ -8,6 +8,7 @@ import {
   IndentStatus,
   updateIndentStatusApi
 } from '@/lib/api';
+import { useAuth } from '@/components/AuthProvider';
 
 const statusOptions: IndentStatus[] = ['pending', 'approved', 'rejected', 'fulfilled'];
 const statusLabelMap: Record<IndentStatus, string> = {
@@ -24,6 +25,7 @@ interface IndentManagerProps {
 }
 
 export default function IndentManager({ filterStatus, viewOnly = false, refreshKey = 0 }: IndentManagerProps) {
+  const { token } = useAuth();
   const [indents, setIndents] = useState<IndentRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedIndent, setSelectedIndent] = useState<IndentRecord | null>(null);
@@ -50,7 +52,7 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
 
   const handleDelete = async (_id: string) => {
     try {
-      await deleteIndentApi(_id);
+      await deleteIndentApi(_id, token);
       await refresh();
     } catch (error) {
       console.error('Delete error:', error);
@@ -59,7 +61,7 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
 
   const handleStatusUpdate = async (_id: string, nextStatus: IndentStatus) => {
     try {
-      await updateIndentStatusApi(_id, nextStatus);
+      await updateIndentStatusApi(_id, nextStatus, token);
       await refresh();
     } catch (error) {
       console.error('Update error:', error);
@@ -173,12 +175,18 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
             <h4>Items</h4>
             {selectedIndent.items?.length ? (
               <ul className="indent-details-items">
-                {selectedIndent.items.map((item, idx) => (
-                  <li key={`${selectedIndent._id}-${idx}`}>
-                    <span>{item.productName || item.productId || 'Unknown product'}</span>
-                    <span>{item.qty}</span>
-                  </li>
-                ))}
+                {selectedIndent.items.map((item, idx) => {
+                  const qty = item.quantity ?? item.qty;
+                  return (
+                    <li key={`${selectedIndent._id}-${idx}`}>
+                      <span>
+                        {item.productName || item.productId || 'Unknown product'}
+                        {item.size ? ` · ${item.size}` : ''}
+                      </span>
+                      <span>{qty}</span>
+                    </li>
+                  );
+                })}
               </ul>
             ) : (
               <p>No items available.</p>

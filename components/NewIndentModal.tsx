@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Category, createIndentApi, fetchCategoriesApi, fetchProductsApi, Product } from '@/lib/api';
+import { useAuth } from '@/components/AuthProvider';
 
 interface IndentRow {
   id: string;
@@ -29,6 +30,7 @@ export default function NewIndentModal({
   onClose: () => void;
   onCreated?: () => void;
 }) {
+  const { token, agent } = useAuth();
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [allProducts, setAllProducts] = useState<Product[]>([]);
@@ -109,16 +111,33 @@ export default function NewIndentModal({
     if (rows.length === 0 || submitting) return;
     setSubmitting(true);
     try {
+      const resolveId = (value: unknown): string | undefined => {
+        if (!value) return undefined;
+        if (typeof value === 'string') return value;
+        if (typeof value === 'object') {
+          const obj = value as { _id?: string; id?: string; userId?: string; userid?: string };
+          return obj._id ?? obj.id ?? obj.userId ?? obj.userid;
+        }
+        return undefined;
+      };
+
       await createIndentApi({
+        route: resolveId(agent?.route),
+        plant: resolveId(agent?.plant),
+        department: resolveId(agent?.department),
         remarks: `Created from app with ${rows.length} item(s)`,
+        agent: resolveId(agent?._id) ?? resolveId(agent?.id) ?? agent?.userId ?? agent?.userid,
+        executive: resolveId(agent?.executive),
+        branchManager: resolveId(agent?.branchManager),
+        areaManager: resolveId(agent?.areaManager),
+        gmSales: resolveId(agent?.gmSales),
         items: rows.map((row) => ({
-          categoryId: row.categoryId,
-          categoryName: row.category,
-          productId: row.productId,
-          productName: row.product,
-          qty: row.qty
+          category: row.categoryId,
+          product: row.productId,
+          quantity: row.qty,
+          size: row.size.trim() || undefined
         }))
-      });
+      }, token);
       setRows([]);
       setQty('');
       setSelectedCategory('');

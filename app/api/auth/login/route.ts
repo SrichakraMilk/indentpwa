@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'https://production.srichakramilk.com/api';
+import { getUpstreamApiBase } from '@/lib/upstreamApiBase';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.text();
-    const response = await fetch(`${API_BASE}/auth/agent-login`, {
+    const response = await fetch(`${getUpstreamApiBase()}/auth/agent-login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

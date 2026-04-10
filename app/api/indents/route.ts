@@ -1,19 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'https://production.srichakramilk.com/api';
-const INDENTS_POST_ENDPOINT = 'https://production.srichakramilk.com/api/indents';
+import { getUpstreamApiBase } from '@/lib/upstreamApiBase';
 
-export async function GET() {
+const INDENTS_POST_ENDPOINT =
+  process.env.INDENTS_POST_URL?.trim() || `${getUpstreamApiBase()}/indents`;
+
+function parseUpstreamBody(text: string): unknown {
+  if (!text) return {};
   try {
-    const response = await fetch(`${API_BASE}/indents`, {
+    return JSON.parse(text) as unknown;
+  } catch {
+    return { message: text };
+  }
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const authHeader = request.headers.get('authorization');
+    const response = await fetch(`${getUpstreamApiBase()}/indents`, {
       method: 'GET',
-      headers: { Accept: 'application/json' },
+      headers: {
+        Accept: 'application/json',
+        ...(authHeader ? { Authorization: authHeader } : {})
+      },
       cache: 'no-store'
     });
 
     const text = await response.text();
-    const payload = text ? JSON.parse(text) : {};
-    return NextResponse.json(payload, { status: response.status });
+    return NextResponse.json(parseUpstreamBody(text), { status: response.status });
   } catch {
     return NextResponse.json({ message: 'Unable to fetch indents' }, { status: 500 });
   }
@@ -23,6 +37,16 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.text();
     const authHeader = request.headers.get('authorization');
+    if (!authHeader?.toLowerCase().startsWith('bearer ')) {
+      return NextResponse.json(
+        {
+          error: 'Missing authorization',
+          message:
+            'No Bearer token was sent. Sign out and sign in again. If you use a local indent API, set INDENT_UPSTREAM_API_BASE to the same host that issued your login token.'
+        },
+        { status: 401 }
+      );
+    }
     const response = await fetch(INDENTS_POST_ENDPOINT, {
       method: 'POST',
       headers: {
@@ -34,8 +58,7 @@ export async function POST(request: NextRequest) {
     });
 
     const text = await response.text();
-    const payload = text ? JSON.parse(text) : {};
-    return NextResponse.json(payload, { status: response.status });
+    return NextResponse.json(parseUpstreamBody(text), { status: response.status });
   } catch {
     return NextResponse.json({ message: 'Unable to create indent' }, { status: 500 });
   }

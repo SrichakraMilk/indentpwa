@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'https://production.srichakramilk.com/api';
+import { getUpstreamApiBase } from '@/lib/upstreamApiBase';
 
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get('authorization');
@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const response = await fetch(`${API_BASE}/auth/agent-login/me`, {
+    const response = await fetch(`${getUpstreamApiBase()}/auth/agent-login/me`, {
       method: 'GET',
       headers: {
         Authorization: authHeader,
