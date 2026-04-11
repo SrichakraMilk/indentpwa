@@ -49,6 +49,8 @@ export interface CurrentAgentResponse extends LoginResponse {
 const AUTH_LOGIN_ENDPOINT = '/api/auth/login';
 const AUTH_ME_ENDPOINT = '/api/auth/me';
 const INDENTS_ENDPOINT = '/api/indents';
+const ROUTES_ENDPOINT = '/api/routes';
+const USERS_AGENTS_ENDPOINT = '/api/users/agents';
 /** Only categories with categoryType "Products" — proxied to upstream /api/categories/products */
 const PRODUCT_CATEGORIES_ENDPOINT = '/api/categories/products';
 const PRODUCTS_ENDPOINT = '/api/products';
@@ -73,6 +75,19 @@ function mongoIdString(v: unknown): string | undefined {
   }
   if (typeof v === 'object' && v !== null && '_id' in v) {
     return mongoIdString((v as { _id: unknown })._id);
+  }
+  return undefined;
+}
+
+/** ObjectId string, `$oid`, or plain id string from a ref or id field. */
+export function linkedEntityId(value: unknown): string | undefined {
+  if (value == null) return undefined;
+  if (typeof value === 'string') {
+    const t = value.trim();
+    return t ? t : undefined;
+  }
+  if (typeof value === 'object') {
+    return mongoIdString(value);
   }
   return undefined;
 }
@@ -192,6 +207,34 @@ export interface Product {
   name: string;
   categoryId: string;
   size: string;
+}
+
+/** Active sales route row (from upstream `GET /api/routes` → `{ routes }`). */
+export interface SalesRouteRow {
+  id: string;
+  name: string;
+  code: string;
+  description?: string;
+  plantLabel?: string;
+  branchLabel?: string;
+  executiveLabel?: string;
+  branchManagerLabel?: string;
+  areaManagerLabel?: string;
+}
+
+/** User row from `GET /api/users/agents?routeId=…`. */
+export interface ListedAgent {
+  id: string;
+  fname: string;
+  lname: string;
+  displayName: string;
+  email?: string;
+  mobile?: string;
+  userid?: string;
+  agentCode?: string;
+  branchLabel?: string;
+  routeLabel?: string;
+  isActive?: boolean;
 }
 
 type RawProduct = {
@@ -504,6 +547,144 @@ export async function createIndentApi(input: CreateIndentRequest, token?: string
     const errorText = await response.text();
     throw new Error(`Unable to create indent: ${errorText || response.statusText}`);
   }
+}
+
+function refPersonLabel(ref: unknown): string | undefined {
+  if (!ref || typeof ref !== 'object' || Array.isArray(ref)) return undefined;
+  const o = ref as Record<string, unknown>;
+  const fn = typeof o.fname === 'string' ? o.fname.trim() : '';
+  const ln = typeof o.lname === 'string' ? o.lname.trim() : '';
+  const full = `${fn} ${ln}`.trim();
+  return full || undefined;
+}
+
+function refPlaceLabel(ref: unknown): string | undefined {
+  if (!ref || typeof ref !== 'object' || Array.isArray(ref)) return undefined;
+  const o = ref as Record<string, unknown>;
+  const name = typeof o.name === 'string' ? o.name.trim() : '';
+  const code = typeof o.code === 'string' ? o.code.trim() : '';
+  if (name && code) return `${name} (${code})`;
+  return name || code || undefined;
+}
+
+function normalizeSalesRoute(raw: unknown): SalesRouteRow | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const o = raw as Record<string, unknown>;
+  const id = mongoIdString(o._id) ?? mongoIdString(o.id);
+  if (!id) return null;
+  const name = typeof o.name === 'string' ? o.name.trim() : '';
+  const codeRaw = typeof o.code === 'string' ? o.code.trim() : '';
+  const code = codeRaw.toUpperCase();
+  if (!name && !code) return null;
+  const description = typeof o.description === 'string' ? o.description.trim() : undefined;
+  return {
+    id,
+    name: name || code || id,
+    code: code || name || id,
+    description: description || undefined,
+    plantLabel: refPlaceLabel(o.plant),
+    branchLabel: refPlaceLabel(o.branch),
+    executiveLabel: refPersonLabel(o.executive),
+    branchManagerLabel: refPersonLabel(o.branchManager),
+    areaManagerLabel: refPersonLabel(o.areaManager)
+  };
+}
+
+function normalizeRoutesPayload(data: unknown): SalesRouteRow[] {
+  let list: unknown[] = [];
+  if (Array.isArray(data)) list = data;
+  else if (data && typeof data === 'object') {
+    const value = data as { routes?: unknown };
+    if (Array.isArray(value.routes)) list = value.routes;
+  }
+  return list.map(normalizeSalesRoute).filter((row): row is SalesRouteRow => row != null);
+}
+
+/**
+ * Active routes from same-origin `GET /api/routes` → upstream plant `GET /api/routes`.
+ * Optional `plantId` / `branchId` match upstream query filters.
+ */
+export async function fetchRoutesApi(
+  options?: { plantId?: string; branchId?: string },
+  token?: string | null
+): Promise<SalesRouteRow[]> {
+  const params = new URLSearchParams();
+  if (options?.plantId?.trim()) params.set('plantId', options.plantId.trim());
+  if (options?.branchId?.trim()) params.set('branchId', options.branchId.trim());
+  const qs = params.toString();
+  const url = `${ROUTES_ENDPOINT}${qs ? `?${qs}` : ''}`;
+  const response = await fetch(url, {
+    cache: 'no-store',
+    headers: buildAuthHeaders(false, token)
+  });
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Unable to fetch routes: ${errorText || response.statusText}`);
+  }
+  const data = await response.json();
+  return normalizeRoutesPayload(data);
+}
+
+function normalizeListedAgent(raw: unknown): ListedAgent | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const o = raw as Record<string, unknown>;
+  const id = mongoIdString(o._id) ?? mongoIdString(o.id);
+  if (!id) return null;
+  const fname = typeof o.fname === 'string' ? o.fname.trim() : '';
+  const lname = typeof o.lname === 'string' ? o.lname.trim() : '';
+  const displayName = `${fname} ${lname}`.trim() || id;
+  const email = typeof o.email === 'string' ? o.email.trim() : undefined;
+  const mobile = typeof o.mobile === 'string' ? o.mobile.trim() : undefined;
+  const userid = typeof o.userid === 'string' ? o.userid.trim() : undefined;
+  const agentCode = typeof o.agentCode === 'string' ? o.agentCode.trim() : undefined;
+  const isActive = typeof o.isActive === 'boolean' ? o.isActive : undefined;
+  return {
+    id,
+    fname,
+    lname,
+    displayName,
+    email: email || undefined,
+    mobile: mobile || undefined,
+    userid: userid || undefined,
+    agentCode: agentCode || undefined,
+    branchLabel: refPlaceLabel(o.branch),
+    routeLabel: refPlaceLabel(o.route),
+    isActive
+  };
+}
+
+function normalizeAgentsListPayload(data: unknown): ListedAgent[] {
+  let list: unknown[] = [];
+  if (Array.isArray(data)) list = data;
+  else if (data && typeof data === 'object') {
+    const value = data as { agents?: unknown };
+    if (Array.isArray(value.agents)) list = value.agents;
+  }
+  return list.map(normalizeListedAgent).filter((row): row is ListedAgent => row != null);
+}
+
+/**
+ * Agents on a route: `GET /api/users/agents?routeId=…` → upstream plant same path.
+ */
+export async function fetchAgentsForRouteApi(
+  routeId: string,
+  token?: string | null
+): Promise<ListedAgent[]> {
+  const id = routeId.trim();
+  if (!id) {
+    throw new Error('Choose a route to load agents.');
+  }
+  const url = `${USERS_AGENTS_ENDPOINT}?routeId=${encodeURIComponent(id)}`;
+  const response = await fetch(url, {
+    cache: 'no-store',
+    headers: buildAuthHeaders(false, token)
+  });
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Unable to fetch agents: ${errorText || response.statusText}`);
+  }
+  const data = await response.json();
+  return normalizeAgentsListPayload(data);
 }
 
 function normalizeCategory(raw: unknown): Category | null {

@@ -599,6 +599,13 @@ button:disabled {
   border: 1px solid #d0e3ff;
 }
 
+.dashboard-welcome-heading {
+  margin: 0 0 1rem;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
 .menu-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -617,6 +624,120 @@ button:disabled {
 .menu-card img {
   width: 40px;
   margin-bottom: 10px;
+}
+
+.menu-card-icon {
+  display: block;
+  font-size: 2.25rem;
+  line-height: 1;
+  margin: 0 auto 10px;
+}
+
+.module-back-nav {
+  margin: 0 0 0.75rem;
+  font-size: 0.9rem;
+}
+
+.module-back-nav a {
+  color: #0e7490;
+  font-weight: 600;
+}
+
+.module-description {
+  margin: 0.5rem 0 0;
+  color: #64748b;
+  font-size: 0.95rem;
+  max-width: 42rem;
+}
+
+.routes-muted {
+  margin: 1.25rem 0 0;
+  color: #64748b;
+}
+
+.routes-banner {
+  margin: 1rem 0 0;
+  padding: 0.85rem 1rem;
+  border-radius: 0.75rem;
+  font-size: 0.95rem;
+}
+
+.routes-banner--error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+}
+
+.routes-table-wrap {
+  margin-top: 1.25rem;
+  overflow-x: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  background: #fff;
+}
+
+.routes-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.routes-table th,
+.routes-table td {
+  padding: 0.65rem 0.85rem;
+  text-align: left;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: top;
+}
+
+.routes-table th {
+  background: #f8fafc;
+  font-weight: 600;
+  color: #334155;
+  white-space: nowrap;
+}
+
+.routes-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.routes-table-mono {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: #0f172a;
+  white-space: nowrap;
+}
+
+.routes-name {
+  display: block;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.routes-desc {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: #64748b;
+}
+
+.routes-footnote {
+  margin: 0.75rem 0 0;
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.agents-route-field {
+  margin-top: 1.25rem;
+  display: grid;
+  gap: 0.4rem;
+  max-width: min(100%, 28rem);
+}
+
+.agents-route-field label {
+  font-weight: 600;
+  color: #334155;
 }
 
 .indents-toolbar {

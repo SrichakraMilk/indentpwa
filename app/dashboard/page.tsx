@@ -9,6 +9,27 @@ import { useAuth } from '@/components/AuthProvider';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
+function roleLabel(agent: AgentDetails | null): string {
+  const role =
+    agent?.role && typeof agent.role === 'object'
+      ? (agent.role as { name?: string; code?: string })
+      : undefined;
+  return (role?.name ?? role?.code ?? '').trim();
+}
+
+function isAgentRole(agent: AgentDetails | null): boolean {
+  const label = roleLabel(agent);
+  return label === 'Agent' || label === 'AGT';
+}
+
+/** Full name from API (agent profile or session user). */
+function welcomeNameFromDb(agent: AgentDetails | null, profile: { name: string; email: string } | null): string {
+  const fromAgent = `${agent?.fname ?? ''} ${agent?.lname ?? ''}`.trim();
+  if (fromAgent) return fromAgent;
+  const fromUser = profile?.name?.trim();
+  if (fromUser) return fromUser;
+  return 'User';
+}
 
 export default function DashboardPage() {
   const { token } = useAuth();
@@ -21,6 +42,7 @@ export default function DashboardPage() {
   });
 
   const [loading, setLoading] = useState(true);
+  const [profileReady, setProfileReady] = useState(false);
   const [agent, setAgent] = useState<AgentDetails | null>(null);
   const [profile, setProfile] = useState<{ name: string; email: string } | null>(null);
 
@@ -55,10 +77,16 @@ export default function DashboardPage() {
     loadStats();
   }, []);
 
-  // 🔷 Load Profile
+  // 🔷 Load profile / agent (needed for welcome + role)
   useEffect(() => {
-    if (!token) return;
+    if (!token) {
+      setProfileReady(false);
+      setAgent(null);
+      setProfile(null);
+      return;
+    }
 
+    setProfileReady(false);
     (async () => {
       try {
         const response = await fetchCurrentAgent(token);
@@ -66,6 +94,8 @@ export default function DashboardPage() {
         setAgent(response.agent ?? null);
       } catch (err) {
         console.error('Failed to load dashboard data');
+      } finally {
+        setProfileReady(true);
       }
     })();
   }, [token]);
@@ -80,30 +110,27 @@ export default function DashboardPage() {
         <main className="page-shell">
           <h1 className="page-title">Dashboard</h1>
 
-        {/* 🔷 Welcome Card */}
-        <div className="welcome-card">
-          {loading ? (
-            <>
-              <div className="skeleton title"></div>
-              <div className="skeleton line"></div>
-              <div className="skeleton line"></div>
-              <div className="skeleton line"></div>
-            </>
-          ) : (
-            <>
-              <h3>
-                Welcome {agent ? agent.fname : profile?.name?.split(' ')[0] || 'User'}
-              </h3>
-              <p>Credit Limit : ₹ {agent?.creditLimit ?? '0'}</p>
-              <p>Outstanding : ₹ {agent?.outstanding ?? '0'}</p>
-              <p>Credit Balance : ₹ {agent?.balance ?? '0'}</p>
-            </>
-          )}
-        </div>
+        {!profileReady ? (
+          <div className="welcome-card">
+            <div className="skeleton title"></div>
+            <div className="skeleton line"></div>
+            <div className="skeleton line"></div>
+            <div className="skeleton line"></div>
+          </div>
+        ) : isAgentRole(agent) ? (
+          <div className="welcome-card">
+            <h3>Welcome {welcomeNameFromDb(agent, profile)}</h3>
+            <p>Credit Limit : ₹ {agent?.creditLimit ?? '0'}</p>
+            <p>Outstanding : ₹ {agent?.outstanding ?? '0'}</p>
+            <p>Credit Balance : ₹ {agent?.balance ?? '0'}</p>
+          </div>
+        ) : (
+          <h2 className="dashboard-welcome-heading">Welcome {welcomeNameFromDb(agent, profile)}</h2>
+        )}
 
-        {/* 🔷 Grid */}
+        {/* Menu: agents keep legacy tiles; other roles get Routes / Agents / Indents / Payments / Invoice / Catalog */}
         <div className="menu-grid">
-          {loading
+          {!profileReady || loading
             ? Array.from({ length: 6 }).map((_, i) => (
                 <div className="menu-card" key={i}>
                   <div className="skeleton icon"></div>
@@ -111,40 +138,89 @@ export default function DashboardPage() {
                   <div className="skeleton badge"></div>
                 </div>
               ))
-            : (
-              <>
-                <Link href="/indents?status=pending" className="menu-card">
-                  <img src="/icons/indent.png" />
-                  <p>Indent</p>
-                  <span>{stats.pending}</span>
-                </Link>
-
-                <div className="menu-card">
-                  <img src="/icons/payment.png" />
-                  <p>Payments</p>
-                </div>
-
-                <div className="menu-card">
-                  <img src="/icons/invoice.png" />
-                  <p>Invoice</p>
-                </div>
-
-                <div className="menu-card">
-                  <img src="/icons/orders.png" />
-                  <p>Orders</p>
-                </div>
-
-                <div className="menu-card">
-                  <img src="/icons/catalog.png" />
-                  <p>Catalog</p>
-                </div>
-
-                <div className="menu-card">
-                  <img src="/icons/help.png" />
-                  <p>Help</p>
-                </div>
-              </>
-            )}
+            : isAgentRole(agent)
+              ? (
+                  <>
+                    <Link href="/indents?status=pending" className="menu-card">
+                      <span className="menu-card-icon" aria-hidden>
+                        📋
+                      </span>
+                      <p>Indent</p>
+                      <span>{stats.pending}</span>
+                    </Link>
+                    <Link href="/payments" className="menu-card">
+                      <span className="menu-card-icon" aria-hidden>
+                        💳
+                      </span>
+                      <p>Payments</p>
+                    </Link>
+                    <Link href="/invoice" className="menu-card">
+                      <span className="menu-card-icon" aria-hidden>
+                        🧾
+                      </span>
+                      <p>Invoice</p>
+                    </Link>
+                    <Link href="/orders" className="menu-card">
+                      <span className="menu-card-icon" aria-hidden>
+                        📦
+                      </span>
+                      <p>Orders</p>
+                    </Link>
+                    <Link href="/catalog" className="menu-card">
+                      <span className="menu-card-icon" aria-hidden>
+                        📚
+                      </span>
+                      <p>Catalog</p>
+                    </Link>
+                    <Link href="/help" className="menu-card">
+                      <span className="menu-card-icon" aria-hidden>
+                        ❓
+                      </span>
+                      <p>Help</p>
+                    </Link>
+                  </>
+                )
+              : (
+                  <>
+                    <Link href="/routes" className="menu-card">
+                      <span className="menu-card-icon" aria-hidden>
+                        🗺️
+                      </span>
+                      <p>Routes</p>
+                    </Link>
+                    <Link href="/agents" className="menu-card">
+                      <span className="menu-card-icon" aria-hidden>
+                        👥
+                      </span>
+                      <p>Agents</p>
+                    </Link>
+                    <Link href="/indents?status=pending" className="menu-card">
+                      <span className="menu-card-icon" aria-hidden>
+                        📋
+                      </span>
+                      <p>Indents</p>
+                      <span>{stats.pending}</span>
+                    </Link>
+                    <Link href="/payments" className="menu-card">
+                      <span className="menu-card-icon" aria-hidden>
+                        💳
+                      </span>
+                      <p>Payments</p>
+                    </Link>
+                    <Link href="/invoice" className="menu-card">
+                      <span className="menu-card-icon" aria-hidden>
+                        🧾
+                      </span>
+                      <p>Invoice</p>
+                    </Link>
+                    <Link href="/catalog" className="menu-card">
+                      <span className="menu-card-icon" aria-hidden>
+                        📚
+                      </span>
+                      <p>Catalog</p>
+                    </Link>
+                  </>
+                )}
         </div>
 
         </main>

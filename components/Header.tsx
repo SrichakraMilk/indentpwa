@@ -55,7 +55,9 @@ export default function Header() {
           ×
         </button>
         <Link href="/dashboard" className="menu-item">Dashboard</Link>
-        <Link href="/indents" className="menu-item">Indent</Link>
+        <Link href="/routes" className="menu-item">Routes</Link>
+        <Link href="/agents" className="menu-item">Agents</Link>
+        <Link href="/indents" className="menu-item">Indents</Link>
         <Link href="/payments" className="menu-item">Payments</Link>
         <Link href="/invoice" className="menu-item">Invoice</Link>
         <Link href="/orders" className="menu-item">Orders</Link>
