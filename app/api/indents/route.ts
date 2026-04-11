@@ -14,14 +14,23 @@ function parseUpstreamBody(text: string): unknown {
   }
 }
 
+function extractBearerToken(authorization: string | null): string | null {
+  if (!authorization?.trim()) return null;
+  const m = authorization.trim().match(/^Bearer\s+(.+)$/i);
+  return m?.[1]?.trim() ?? null;
+}
+
 export async function GET(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization');
+    const bearer = extractBearerToken(authHeader);
     const response = await fetch(`${getUpstreamApiBase()}/indents`, {
       method: 'GET',
       headers: {
         Accept: 'application/json',
-        ...(authHeader ? { Authorization: authHeader } : {})
+        ...(bearer
+          ? { Authorization: `Bearer ${bearer}`, 'X-Indent-Access-Token': bearer }
+          : {})
       },
       cache: 'no-store'
     });
@@ -35,30 +44,49 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.text();
     const authHeader = request.headers.get('authorization');
-    if (!authHeader?.toLowerCase().startsWith('bearer ')) {
+    const bearer = extractBearerToken(authHeader);
+    if (!bearer) {
       return NextResponse.json(
         {
           error: 'Missing authorization',
           message:
-            'No Bearer token was sent. Sign out and sign in again. If you use a local indent API, set INDENT_UPSTREAM_API_BASE to the same host that issued your login token.'
+            'No Bearer token was sent. Sign out and sign in again. Set INDENT_UPSTREAM_API_BASE (and NEXT_PUBLIC_API_BASE) to the same host that issues your login JWT.'
         },
         { status: 401 }
       );
     }
+
+    const body = await request.text();
     const response = await fetch(INDENTS_POST_ENDPOINT, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json',
-        ...(authHeader ? { Authorization: authHeader } : {})
+        Authorization: `Bearer ${bearer}`,
+        'X-Indent-Access-Token': bearer
       },
-      body
+      body,
+      cache: 'no-store'
     });
 
     const text = await response.text();
-    return NextResponse.json(parseUpstreamBody(text), { status: response.status });
+    const payload = parseUpstreamBody(text);
+    if (process.env.NODE_ENV === 'development' && response.status === 401) {
+      return NextResponse.json(
+        {
+          ...(typeof payload === 'object' && payload !== null && !Array.isArray(payload)
+            ? payload
+            : { detail: payload }),
+          _debug: {
+            forwardedTo: INDENTS_POST_ENDPOINT,
+            upstreamBase: getUpstreamApiBase()
+          }
+        },
+        { status: 401 }
+      );
+    }
+    return NextResponse.json(payload, { status: response.status });
   } catch {
     return NextResponse.json({ message: 'Unable to create indent' }, { status: 500 });
   }

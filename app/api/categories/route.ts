@@ -1,10 +1,12 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
-const CATEGORIES_SOURCE = 'https://appadmin.srichakramilk.com/api/categories';
+import { getCategoriesUpstreamBase } from '@/lib/upstreamApiBase';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const response = await fetch(CATEGORIES_SOURCE, {
+    const qs = request.nextUrl.searchParams.toString();
+    const url = `${getCategoriesUpstreamBase()}/categories${qs ? `?${qs}` : ''}`;
+    const response = await fetch(url, {
       method: 'GET',
       headers: { Accept: 'application/json' },
       cache: 'no-store'

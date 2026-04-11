@@ -49,7 +49,8 @@ export interface CurrentAgentResponse extends LoginResponse {
 const AUTH_LOGIN_ENDPOINT = '/api/auth/login';
 const AUTH_ME_ENDPOINT = '/api/auth/me';
 const INDENTS_ENDPOINT = '/api/indents';
-const CATEGORIES_ENDPOINT = '/api/categories';
+/** Only categories with categoryType "Products" — proxied to upstream /api/categories/products */
+const PRODUCT_CATEGORIES_ENDPOINT = '/api/categories/products';
 const PRODUCTS_ENDPOINT = '/api/products';
 const AUTH_STORAGE_KEY = 'indent-pwa-auth';
 
@@ -62,6 +63,115 @@ export interface IndentItem {
   size?: string;
   qty?: number;
   quantity?: number;
+}
+
+function mongoIdString(v: unknown): string | undefined {
+  if (v == null) return undefined;
+  if (typeof v === 'string') return v;
+  if (typeof v === 'object' && v !== null && '$oid' in v) {
+    return String((v as { $oid: unknown }).$oid);
+  }
+  if (typeof v === 'object' && v !== null && '_id' in v) {
+    return mongoIdString((v as { _id: unknown })._id);
+  }
+  return undefined;
+}
+
+/** Resolve display label + id from a populated ref, an ObjectId, or extended JSON. */
+function productRefToLabelAndId(ref: unknown): { id?: string; label?: string } {
+  if (ref == null) return {};
+  if (typeof ref === 'string') {
+    const t = ref.trim();
+    return t ? { id: t } : {};
+  }
+  if (typeof ref !== 'object' || Array.isArray(ref)) return {};
+  const o = ref as Record<string, unknown>;
+  const id = mongoIdString(o._id) ?? mongoIdString(ref);
+  const label =
+    (typeof o.name === 'string' && o.name.trim()) ||
+    (typeof o.productName === 'string' && o.productName.trim()) ||
+    (typeof o.code === 'string' && o.code.trim()) ||
+    (typeof o.sku === 'string' && o.sku.trim()) ||
+    undefined;
+  return { id: id || undefined, label };
+}
+
+function categoryRefToLabelAndId(ref: unknown): { id?: string; label?: string } {
+  if (ref == null) return {};
+  if (typeof ref === 'string') {
+    const t = ref.trim();
+    return t ? { id: t } : {};
+  }
+  if (typeof ref !== 'object' || Array.isArray(ref)) return {};
+  const o = ref as Record<string, unknown>;
+  const id = mongoIdString(o._id) ?? mongoIdString(ref);
+  const label =
+    (typeof o.name === 'string' && o.name.trim()) ||
+    (typeof o.categoryName === 'string' && o.categoryName.trim()) ||
+    (typeof o.code === 'string' && o.code.trim()) ||
+    undefined;
+  return { id: id || undefined, label };
+}
+
+/** Backend may return populated refs (`product`, `category`) instead of flat names. */
+function normalizeIndentItem(raw: unknown): IndentItem {
+  if (!raw || typeof raw !== 'object') {
+    return { quantity: 0 };
+  }
+  const item = raw as Record<string, unknown>;
+
+  const productRef = item.product ?? item.plantProduct;
+  const categoryRef = item.category;
+
+  const fromProduct = productRefToLabelAndId(productRef);
+  const fromCategory = categoryRefToLabelAndId(categoryRef);
+
+  const productName =
+    (typeof item.productName === 'string' && item.productName.trim()) || fromProduct.label || undefined;
+
+  const categoryName =
+    (typeof item.categoryName === 'string' && item.categoryName.trim()) || fromCategory.label || undefined;
+
+  const productId =
+    (typeof item.productId === 'string' && item.productId.trim()) || fromProduct.id || undefined;
+
+  const categoryId =
+    (typeof item.categoryId === 'string' && item.categoryId.trim()) || fromCategory.id || undefined;
+
+  const qty =
+    typeof item.qty === 'number'
+      ? item.qty
+      : typeof item.quantity === 'number'
+        ? item.quantity
+        : undefined;
+  const quantity = typeof item.quantity === 'number' ? item.quantity : qty;
+
+  const size = typeof item.size === 'string' ? item.size : undefined;
+
+  return {
+    categoryId,
+    categoryName,
+    productId,
+    productName,
+    size,
+    qty,
+    quantity
+  };
+}
+
+function normalizeIndentRecord(raw: unknown): IndentRecord {
+  if (!raw || typeof raw !== 'object') {
+    return { _id: '', indentNumber: '', status: '', items: [] };
+  }
+  const r = raw as Record<string, unknown>;
+  const items = Array.isArray(r.items) ? r.items.map(normalizeIndentItem) : [];
+  return {
+    _id: String(r._id ?? ''),
+    indentNumber: String(r.indentNumber ?? ''),
+    status: String(r.status ?? ''),
+    remarks: typeof r.remarks === 'string' ? r.remarks : undefined,
+    items
+  };
 }
 
 export interface IndentRecord {
@@ -134,14 +244,15 @@ function buildAuthHeaders(contentType = false, tokenOverride?: string | null): H
 const delay = (ms = 300) => new Promise((resolve) => setTimeout(resolve, ms));
 
 function normalizeIndentsPayload(data: unknown): IndentRecord[] {
-  if (Array.isArray(data)) return data as IndentRecord[];
-  if (data && typeof data === 'object') {
+  let list: unknown[] = [];
+  if (Array.isArray(data)) list = data;
+  else if (data && typeof data === 'object') {
     const value = data as { indents?: unknown; data?: unknown; indent?: unknown };
-    if (Array.isArray(value.indents)) return value.indents as IndentRecord[];
-    if (Array.isArray(value.data)) return value.data as IndentRecord[];
-    if (value.indent && typeof value.indent === 'object') return [value.indent as IndentRecord];
+    if (Array.isArray(value.indents)) list = value.indents;
+    else if (Array.isArray(value.data)) list = value.data;
+    else if (value.indent && typeof value.indent === 'object') list = [value.indent];
   }
-  return [];
+  return list.map(normalizeIndentRecord);
 }
 
 export async function login(identifier: string, password: string): Promise<LoginResponse> {
@@ -395,23 +506,48 @@ export async function createIndentApi(input: CreateIndentRequest, token?: string
   }
 }
 
-export async function fetchCategoriesApi(): Promise<Category[]> {
-  const response = await fetch(CATEGORIES_ENDPOINT);
+function normalizeCategory(raw: unknown): Category | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const o = raw as Record<string, unknown>;
+  const _id = mongoIdString(o._id) ?? mongoIdString(o.id) ?? undefined;
+  if (!_id) return null;
+  const name =
+    (typeof o.name === 'string' && o.name.trim()) ||
+    (typeof o.code === 'string' && o.code.trim()) ||
+    '';
+  return { _id, name: name || _id };
+}
+
+/**
+ * Product categories for indents (`categoryType: "Products"`).
+ * GET same-origin `/api/categories/products` → upstream plantautomation `/api/categories/products`.
+ */
+export async function fetchProductCategoriesApi(): Promise<Category[]> {
+  const response = await fetch(PRODUCT_CATEGORIES_ENDPOINT, { cache: 'no-store' });
   if (!response.ok) {
     return [];
   }
-  const data = await response.json();
-  const categories = Array.isArray(data)
-    ? (data as Category[])
+  let data: unknown;
+  try {
+    data = await response.json();
+  } catch {
+    return [];
+  }
+  const rawList: unknown[] = Array.isArray(data)
+    ? data
     : data && typeof data === 'object' && Array.isArray((data as { categories?: unknown }).categories)
-      ? (data as { categories: Category[] }).categories
+      ? ((data as { categories: unknown[] }).categories ?? [])
       : [];
 
-  return [...categories].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+  const categories = rawList.map(normalizeCategory).filter((c): c is Category => c != null);
+
+  return [...categories].sort((a, b) =>
+    a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+  );
 }
 
 export async function fetchProductsApi(): Promise<Product[]> {
-  const response = await fetch(PRODUCTS_ENDPOINT);
+  const response = await fetch(PRODUCTS_ENDPOINT, { cache: 'no-store' });
   if (!response.ok) {
     return [];
   }

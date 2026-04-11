@@ -667,8 +667,16 @@ button:disabled {
   padding: 24px;
   width: min(860px, calc(100vw - 2rem));
   max-height: calc(100vh - 2rem);
-  overflow: auto;
+  /* overflow: visible so native <select> menus are not clipped (esp. iOS / PWA) */
+  overflow-x: hidden;
+  overflow-y: auto;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+}
+
+.indent-modal-grid .indent-modal-control,
+.indent-modal-grid select {
+  position: relative;
+  z-index: 2;
 }
 .indent-modal-header {
   margin-bottom: 1rem;

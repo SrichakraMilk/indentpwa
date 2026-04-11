@@ -1,10 +1,15 @@
 import { NextResponse } from 'next/server';
 
-const PRODUCTS_SOURCE = 'https://appadmin.srichakramilk.com/api/products';
+import { getUpstreamApiBase } from '@/lib/upstreamApiBase';
+
+/** Must match PlantProduct IDs used on POST /indents (same DB as indents). */
+function productsUrl() {
+  return `${getUpstreamApiBase()}/products`;
+}
 
 export async function GET() {
   try {
-    const response = await fetch(PRODUCTS_SOURCE, {
+    const response = await fetch(productsUrl(), {
       method: 'GET',
       headers: { Accept: 'application/json' },
       cache: 'no-store'

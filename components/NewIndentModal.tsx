@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Category, createIndentApi, fetchCategoriesApi, fetchProductsApi, Product } from '@/lib/api';
+import { Category, createIndentApi, fetchProductCategoriesApi, fetchProductsApi, Product } from '@/lib/api';
 import { useAuth } from '@/components/AuthProvider';
 
 interface IndentRow {
@@ -43,18 +43,36 @@ export default function NewIndentModal({
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    async function fetchCategories() {
-      try {
-        const [categoryData, productData] = await Promise.all([fetchCategoriesApi(), fetchProductsApi()]);
-        setCategories(categoryData);
-        setAllProducts(productData.length ? productData : products);
-      } catch (e) {
+    if (!open) return;
+
+    let cancelled = false;
+    async function load() {
+      const settled = await Promise.allSettled([fetchProductCategoriesApi(), fetchProductsApi()]);
+      if (cancelled) return;
+
+      const catResult = settled[0];
+      const prodResult = settled[1];
+
+      if (catResult.status === 'fulfilled') {
+        setCategories(catResult.value);
+      } else {
+        console.error('Product categories fetch failed:', catResult.reason);
         setCategories([]);
+      }
+
+      if (prodResult.status === 'fulfilled') {
+        const list = prodResult.value;
+        setAllProducts(list.length ? list : products);
+      } else {
+        console.error('Products fetch failed:', prodResult.reason);
         setAllProducts(products);
       }
     }
-    fetchCategories();
-  }, []);
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
 
   const filteredProducts = allProducts.filter((p) => p.categoryId === selectedCategory);
   const uniqueProductNames = Array.from(new Set(filteredProducts.map((p) => p.name))).sort((a, b) =>

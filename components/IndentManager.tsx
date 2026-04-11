@@ -81,11 +81,11 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
 
   return (
     <div className="card indent-card">
-      {viewOnly && (
+      {/* {viewOnly && (
         <div className="view-only-banner">
           Agent role can only view indents in this section.
         </div>
-      )}
+      )} */}
 
       <section className="list-section">
         <h2>{listHeading}</h2>
@@ -103,15 +103,13 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
                 onClick={() => setSelectedIndent(indent)}
               >
                 <div>
-                  <h3>{cardTitlePrefix} - {indent.indentNumber}</h3>
-                  <p>{indent.remarks || 'No remarks available'}</p>
-
-                  <span
+                <span
                     className={`pill status-${indent.status?.toLowerCase()}`}
                   >
                     {indent.status}
                   </span>
-
+                  <h3>{indent.indentNumber}</h3>
+                  {/* <p>{indent.remarks || 'No remarks available'}</p> */}
                   {/* Optional: show item count */}
                   <p style={{ fontSize: '12px', opacity: 0.7 }}>
                     Items: {indent.items?.length || 0}
