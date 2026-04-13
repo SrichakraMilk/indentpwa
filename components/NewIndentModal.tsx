@@ -145,9 +145,9 @@ export default function NewIndentModal({
         department: resolveId(agent?.department),
         remarks: `Created from app with ${rows.length} item(s)`,
         agent: resolveId(agent?._id) ?? resolveId(agent?.id) ?? agent?.userId ?? agent?.userid,
-        executive: resolveId(agent?.executive),
-        branchManager: resolveId(agent?.branchManager),
-        areaManager: resolveId(agent?.areaManager),
+        executive: resolveId(agent?.branch?.executive),
+        branchManager: resolveId(agent?.branch?.branchManager),
+        areaManager: resolveId(agent?.branch?.areaManager),
         gmSales: resolveId(agent?.gmSales),
         items: rows.map((row) => ({
           category: row.categoryId,

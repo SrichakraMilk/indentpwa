@@ -184,6 +184,8 @@ function normalizeIndentRecord(raw: unknown): IndentRecord {
     _id: String(r._id ?? ''),
     indentNumber: String(r.indentNumber ?? ''),
     status: String(r.status ?? ''),
+    currentStep: typeof r.currentStep === 'string' ? r.currentStep : undefined,
+    approvalLog: Array.isArray(r.approvalLog) ? r.approvalLog : undefined,
     remarks: typeof r.remarks === 'string' ? r.remarks : undefined,
     items
   };
@@ -193,6 +195,14 @@ export interface IndentRecord {
   _id: string;
   indentNumber: string;
   status: string;
+  currentStep?: string;
+  approvalLog?: Array<{
+    role: string;
+    user: unknown;
+    status: string;
+    remarks: string;
+    updatedAt: string;
+  }>;
   remarks?: string;
   items: IndentItem[];
 }
@@ -485,7 +495,7 @@ export async function fetchIndentsApi(): Promise<IndentRecord[]> {
 }
 
 export async function deleteIndentApi(id: string, token?: string | null): Promise<void> {
-  const response = await fetch(`${INDENTS_ENDPOINT}/${id}`, {
+  const response = await fetch(`${INDENTS_ENDPOINT}?id=${encodeURIComponent(id)}`, {
     method: 'DELETE',
     headers: buildAuthHeaders(false, token)
   });
@@ -496,7 +506,7 @@ export async function deleteIndentApi(id: string, token?: string | null): Promis
 }
 
 export async function updateIndentStatusApi(id: string, nextStatus: IndentStatus, token?: string | null): Promise<void> {
-  const response = await fetch(`${INDENTS_ENDPOINT}/${id}`, {
+  const response = await fetch(`${INDENTS_ENDPOINT}?id=${encodeURIComponent(id)}`, {
     method: 'PATCH',
     headers: buildAuthHeaders(true, token),
     body: JSON.stringify({

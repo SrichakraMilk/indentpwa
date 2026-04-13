@@ -25,10 +25,12 @@ interface IndentManagerProps {
 }
 
 export default function IndentManager({ filterStatus, viewOnly = false, refreshKey = 0 }: IndentManagerProps) {
-  const { token } = useAuth();
+  const { token, agent } = useAuth();
   const [indents, setIndents] = useState<IndentRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedIndent, setSelectedIndent] = useState<IndentRecord | null>(null);
+
+  const userRoleCode = (agent?.role as { code?: string })?.code?.toUpperCase();
 
   const fetchIndentsFromAPI = async () => {
     try {
@@ -59,34 +61,40 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
     }
   };
 
-  const handleStatusUpdate = async (_id: string, nextStatus: IndentStatus) => {
+  const handleStatusUpdate = async (_id: string, nextStatus: string) => {
     try {
-      await updateIndentStatusApi(_id, nextStatus, token);
+      const response = await fetch(`/api/indents?id=${encodeURIComponent(_id)}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: nextStatus })
+      });
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.error || 'Update failed');
+      }
       await refresh();
     } catch (error) {
-      console.error('Update error:', error);
+      alert(error instanceof Error ? error.message : 'Update error');
     }
   };
 
   const visibleIndents = Array.isArray(indents)
     ? filterStatus
       ? indents.filter(
-          (indent) => indent.status?.toLowerCase() === filterStatus
+          (indent) => (indent.status || '').toLowerCase() === filterStatus.toLowerCase()
         )
       : indents
     : [];
 
-  const cardTitlePrefix = filterStatus ? statusLabelMap[filterStatus] : 'Indent';
-  const listHeading = filterStatus ? `${statusLabelMap[filterStatus]} Indents` : 'All Indents';
+  const listHeading = filterStatus 
+    ? `${statusLabelMap[filterStatus] || (filterStatus.charAt(0).toUpperCase() + filterStatus.slice(1))} Indents` 
+    : 'All Indents';
 
   return (
     <div className="card indent-card">
-      {/* {viewOnly && (
-        <div className="view-only-banner">
-          Agent role can only view indents in this section.
-        </div>
-      )} */}
-
       <section className="list-section">
         <h2>{listHeading}</h2>
 
@@ -96,55 +104,67 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
           <p>No indents found{filterStatus ? ` for ${filterStatus}` : ''}.</p>
         ) : (
           <ul className="indent-list">
-            {visibleIndents.map((indent) => (
-              <li
-                key={indent._id}
-                className="indent-card-small indent-card-clickable"
-                onClick={() => setSelectedIndent(indent)}
-              >
-                <div>
-                <span
-                    className={`pill status-${indent.status?.toLowerCase()}`}
-                  >
-                    {indent.status}
-                  </span>
-                  <h3>{indent.indentNumber}</h3>
-                  {/* <p>{indent.remarks || 'No remarks available'}</p> */}
-                  {/* Optional: show item count */}
-                  <p style={{ fontSize: '12px', opacity: 0.7 }}>
-                    Items: {indent.items?.length || 0}
-                  </p>
-                </div>
-
-                {!viewOnly && (
-                  <div className="indent-actions" onClick={(e) => e.stopPropagation()}>
-                    <select
-                      value={indent.status.toLowerCase()}
-                      onChange={(e) =>
-                        handleStatusUpdate(
-                          indent._id,
-                          e.target.value as IndentStatus
-                        )
-                      }
-                    >
-                      {statusOptions.map((option) => (
-                        <option key={option} value={option}>
-                          {option}
-                        </option>
-                      ))}
-                    </select>
-
-                    <button
-                      type="button"
-                      className="ghost-button"
-                      onClick={() => handleDelete(indent._id)}
-                    >
-                      Delete
-                    </button>
+            {visibleIndents.map((indent) => {
+              const isTurn = (indent.status || '').toLowerCase() === 'pending' && indent.currentStep === userRoleCode;
+              return (
+                <li
+                  key={indent._id}
+                  className="indent-card-small indent-card-clickable"
+                  onClick={() => setSelectedIndent(indent)}
+                >
+                  <div style={{ flex: 1 }}>
+                    <span className={`pill status-${(indent.status || '').toLowerCase()}`}>
+                      {indent.status || 'Pending'}
+                    </span>
+                    <h3>{indent.indentNumber}</h3>
+                    {(indent.status || '').toLowerCase() === 'pending' && indent.currentStep && (
+                      <p style={{ fontSize: '13px', fontWeight: 600, color: '#0e7490', marginTop: '4px' }}>
+                        Step: {indent.currentStep}
+                      </p>
+                    )}
+                    <p style={{ fontSize: '12px', opacity: 0.7 }}>
+                      Items: {indent.items?.length || 0}
+                    </p>
                   </div>
-                )}
-              </li>
-            ))}
+
+                  <div className="indent-actions" onClick={(e) => e.stopPropagation()}>
+                    {isTurn && (
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button 
+                          className="pill status-approved" 
+                          style={{ border: 'none', cursor: 'pointer', fontSize: '12px' }}
+                          onClick={() => handleStatusUpdate(indent._id, 'Approved')}
+                        >
+                          Approve
+                        </button>
+                        <button 
+                          className="pill status-rejected" 
+                          style={{ border: 'none', cursor: 'pointer', fontSize: '12px' }}
+                          onClick={() => handleStatusUpdate(indent._id, 'Rejected')}
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    )}
+
+                    {!viewOnly && !isTurn && (
+                      <button
+                        type="button"
+                        className="ghost-button"
+                        style={{ padding: '4px 8px', fontSize: '12px', color: '#dc2626' }}
+                        onClick={() => {
+                          if (confirm('Are you sure you want to delete this?')) {
+                            handleDelete(indent._id);
+                          }
+                        }}
+                      >
+                        Delete
+                      </button>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>
@@ -188,6 +208,28 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
               </ul>
             ) : (
               <p>No items available.</p>
+            )}
+
+            {selectedIndent.approvalLog && selectedIndent.approvalLog.length > 0 && (
+              <div className="approval-log-section" style={{ marginTop: '20px' }}>
+                <h4>Approval History</h4>
+                <div className="approval-log-list" style={{ fontSize: '12px' }}>
+                  {selectedIndent.approvalLog.map((log, idx) => (
+                    <div key={idx} style={{ padding: '8px 0', borderBottom: '1px solid #eee' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 600 }}>
+                        <span>{log.role}</span>
+                        <span className={`pill status-${log.status.toLowerCase()}`} style={{ fontSize: '10px' }}>
+                          {log.status}
+                        </span>
+                      </div>
+                      {log.remarks && <p style={{ margin: '4px 0', color: '#666' }}>{log.remarks}</p>}
+                      <p style={{ margin: 0, opacity: 0.6, fontSize: '10px' }}>
+                        {new Date(log.updatedAt).toLocaleString()}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
           </div>
         </div>
