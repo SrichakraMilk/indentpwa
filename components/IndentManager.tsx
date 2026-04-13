@@ -105,7 +105,8 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
         ) : (
           <ul className="indent-list">
             {visibleIndents.map((indent) => {
-              const isTurn = (indent.status || '').toLowerCase() === 'pending' && indent.currentStep === userRoleCode;
+              const currentIndentStep = (indent.currentStep || 'SE').toUpperCase();
+              const isTurn = (indent.status || '').toLowerCase() === 'pending' && currentIndentStep === userRoleCode;
               return (
                 <li
                   key={indent._id}
@@ -165,7 +166,8 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
               </p>
               
               {/* Approval Actions in Details Modal */}
-              {((selectedIndent.status || '').toLowerCase() === 'pending' && selectedIndent.currentStep === userRoleCode) && (
+              {((selectedIndent.status || '').toLowerCase() === 'pending' && 
+                (selectedIndent.currentStep || 'SE').toUpperCase() === userRoleCode) && (
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <button 
                     className="pill status-approved" 

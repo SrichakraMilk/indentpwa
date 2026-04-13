@@ -191,7 +191,7 @@ function normalizeIndentRecord(raw: unknown): IndentRecord {
     _id: String(r._id ?? ''),
     indentNumber: String(r.indentNumber ?? ''),
     status: String(r.status ?? ''),
-    currentStep: typeof r.currentStep === 'string' ? r.currentStep : undefined,
+    currentStep: typeof r.currentStep === 'string' ? r.currentStep : (r.status?.toString().toLowerCase() === 'pending' ? 'SE' : undefined),
     approvalLog: Array.isArray(r.approvalLog) ? r.approvalLog : undefined,
     remarks: typeof r.remarks === 'string' ? r.remarks : undefined,
     items
