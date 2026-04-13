@@ -16,7 +16,7 @@ export default function Footer() {
         <p>Home</p>
       </Link>
 
-      <Link href="/indents" className={isActive('/indents') ? 'active' : ''}>
+      <Link href="/indent" className={isActive('/indent') ? 'active' : ''}>
         <span>📅</span>
         <p>Indents</p>
       </Link>

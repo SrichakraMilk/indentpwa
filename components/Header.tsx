@@ -69,7 +69,7 @@ export default function Header() {
           </>
         )}
 
-        <Link href="/indents" className="menu-item">Indents</Link>
+        <Link href="/indent" className="menu-item">Indents</Link>
         <Link href="/payments" className="menu-item">Payments</Link>
         <Link href="/invoice" className="menu-item">Invoice</Link>
         <Link href="/catalog" className="menu-item">Catalog</Link>

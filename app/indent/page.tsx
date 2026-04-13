@@ -66,7 +66,7 @@ export default function IndentsPage() {
           {statusTabs.map((tab) => (
             <Link
               key={tab.value}
-              href={`/indents?status=${tab.value}`}
+              href={`/indent?status=${tab.value}`}
               className={`indent-status-tab${filterStatus === tab.value ? ' active' : ''}`}
             >
               {tab.label}

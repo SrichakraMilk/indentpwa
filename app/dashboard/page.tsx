@@ -141,7 +141,7 @@ export default function DashboardPage() {
             : isAgentRole(agent)
               ? (
                   <>
-                    <Link href="/indents?status=pending" className="menu-card">
+                    <Link href="/indent" className="menu-card">
                       <span className="menu-card-icon" aria-hidden>
                         📋
                       </span>
@@ -194,7 +194,7 @@ export default function DashboardPage() {
                       </span>
                       <p>Agents</p>
                     </Link>
-                    <Link href="/indents?status=pending" className="menu-card">
+                    <Link href="/indent" className="menu-card">
                       <span className="menu-card-icon" aria-hidden>
                         📋
                       </span>
