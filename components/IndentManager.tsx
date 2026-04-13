@@ -129,37 +129,9 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
 
                   <div className="indent-actions" onClick={(e) => e.stopPropagation()}>
                     {isTurn && (
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        <button 
-                          className="pill status-approved" 
-                          style={{ border: 'none', cursor: 'pointer', fontSize: '12px' }}
-                          onClick={() => handleStatusUpdate(indent._id, 'Approved')}
-                        >
-                          Approve
-                        </button>
-                        <button 
-                          className="pill status-rejected" 
-                          style={{ border: 'none', cursor: 'pointer', fontSize: '12px' }}
-                          onClick={() => handleStatusUpdate(indent._id, 'Rejected')}
-                        >
-                          Reject
-                        </button>
+                      <div className="status-label-container" style={{ display: 'flex', gap: '8px' }}>
+                         <span className="pill status-pending" style={{ fontSize: '10px' }}>Your Turn</span>
                       </div>
-                    )}
-
-                    {!viewOnly && !isTurn && (
-                      <button
-                        type="button"
-                        className="ghost-button"
-                        style={{ padding: '4px 8px', fontSize: '12px', color: '#dc2626' }}
-                        onClick={() => {
-                          if (confirm('Are you sure you want to delete this?')) {
-                            handleDelete(indent._id);
-                          }
-                        }}
-                      >
-                        Delete
-                      </button>
                     )}
                   </div>
                 </li>
@@ -184,12 +156,41 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
               </button>
             </div>
             <p className="indent-details-remarks">{selectedIndent.remarks || 'No remarks available'}</p>
-            <p>
-              Status:{' '}
-              <span className={`pill status-${selectedIndent.status?.toLowerCase()}`}>
-                {selectedIndent.status}
-              </span>
-            </p>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+              <p style={{ margin: 0 }}>
+                Status:{' '}
+                <span className={`pill status-${selectedIndent.status?.toLowerCase()}`}>
+                  {selectedIndent.status}
+                </span>
+              </p>
+              
+              {/* Approval Actions in Details Modal */}
+              {((selectedIndent.status || '').toLowerCase() === 'pending' && selectedIndent.currentStep === userRoleCode) && (
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button 
+                    className="pill status-approved" 
+                    style={{ border: 'none', cursor: 'pointer', padding: '6px 15px', fontWeight: 600 }}
+                    onClick={() => {
+                        handleStatusUpdate(selectedIndent._id, 'Approved');
+                        setSelectedIndent(null);
+                    }}
+                  >
+                    Approve
+                  </button>
+                  <button 
+                    className="pill status-rejected" 
+                    style={{ border: 'none', cursor: 'pointer', padding: '6px 15px', fontWeight: 600 }}
+                    onClick={() => {
+                        handleStatusUpdate(selectedIndent._id, 'Rejected');
+                        setSelectedIndent(null);
+                    }}
+                  >
+                    Reject
+                  </button>
+                </div>
+              )}
+            </div>
+
             <h4>Items</h4>
             {selectedIndent.items?.length ? (
               <ul className="indent-details-items">
