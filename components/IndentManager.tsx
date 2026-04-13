@@ -85,17 +85,46 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
   const visibleIndents = Array.isArray(indents)
     ? indents.filter((indent) => {
         const s = (indent.status || '').toLowerCase();
-        const matchesTab = filterStatus ? s === filterStatus.toLowerCase() : true;
-        if (!matchesTab) return false;
+        const currentStep = (indent.currentStep || 'SE').toUpperCase();
+        
+        // Check my personal involvement
+        const myActualRole = (userRoleCode === 'BM' || userRoleCode === 'ABM') ? ['BM', 'ABM'] : [userRoleCode];
+        
+        const IApproved = indent.approvalLog?.some(log => 
+          myActualRole.includes(log.role.toUpperCase()) && log.status === 'Approved'
+        );
+        const IRejected = indent.approvalLog?.some(log => 
+          myActualRole.includes(log.role.toUpperCase()) && log.status === 'Rejected'
+        );
 
-        // RBAC: Branch Manager (BM) only sees indents that have reached them (Step BM or higher)
-        if (userRoleCode === 'BM') {
-          const step = (indent.currentStep || 'SE').toUpperCase();
-          // If the indent is pending and still at SE step, it's invisible to the BM
-          if (s === 'pending' && step === 'SE') return false;
+        if (filterStatus === 'pending') {
+          // If the global status is not pending, it's not pending for anyone
+          if (s !== 'pending') return false;
+          
+          // It's pending globally. Is it MY turn?
+          const isMyTurn = myActualRole.includes(currentStep);
+          return isMyTurn;
         }
 
-        return true;
+        if (filterStatus === 'approved') {
+          // It's globally approved OR I specifically approved it and it's still in workflow
+          if (s === 'approved') return true;
+          if (s === 'pending' && IApproved) return true;
+          return false;
+        }
+
+        if (filterStatus === 'rejected') {
+          // It's globally rejected OR I specifically rejected it
+          if (s === 'rejected') return true;
+          if (s === 'pending' && IRejected) return true;
+          return false;
+        }
+
+        if (filterStatus === 'fulfilled') {
+          return s === 'fulfilled';
+        }
+
+        return s === (filterStatus || 'pending').toLowerCase();
       })
     : [];
 

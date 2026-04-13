@@ -62,25 +62,37 @@ export default function DashboardPage() {
           total: 0,
         };
 
-        const filteredIndents = indents.filter((i) => {
-          const s = (i.status || '').toLowerCase();
-          
-          // BM filtering: only count pending if it has reached Step BM
-          if (roleCode === 'BM') {
-            const step = (i.currentStep || 'SE').toUpperCase();
-            if (s === 'pending' && step === 'SE') return false;
-          }
-          return true;
-        });
+        const roleCodeStr = (agent?.role as { code?: string })?.code?.toUpperCase() || "";
+        const myRoles = (roleCodeStr === 'BM' || roleCodeStr === 'ABM') ? ['BM', 'ABM'] : [roleCodeStr];
 
-        filteredIndents.forEach((i) => {
-          const s = i.status?.toLowerCase();
-          if (s === 'pending') counts.pending++;
-          else if (s === 'approved') counts.approved++;
-          else if (s === 'rejected') counts.rejected++;
+        indents.forEach((i) => {
+          const s = (i.status || '').toLowerCase();
+          const currentStep = (i.currentStep || 'SE').toUpperCase();
+          
+          const IApproved = i.approvalLog?.some(log => 
+            myRoles.includes(log.role.toUpperCase()) && log.status === 'Approved'
+          );
+          const IRejected = i.approvalLog?.some(log => 
+            myRoles.includes(log.role.toUpperCase()) && log.status === 'Rejected'
+          );
+
+          // 1. Pending: Is it MY turn?
+          if (s === 'pending' && myRoles.includes(currentStep)) {
+            counts.pending++;
+          }
+          
+          // 2. Approved: Global approval OR I specifically approved it
+          if (s === 'approved' || (s === 'pending' && IApproved)) {
+            counts.approved++;
+          }
+          
+          // 3. Rejected: Global rejection OR I specifically rejected it
+          if (s === 'rejected' || (s === 'pending' && IRejected)) {
+            counts.rejected++;
+          }
         });
         
-        counts.total = filteredIndents.length;
+        counts.total = counts.pending + counts.approved + counts.rejected;
         setStats(counts);
       } catch (err) {
         console.error('Stats loading error:', err);

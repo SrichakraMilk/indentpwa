@@ -66,7 +66,7 @@ export default function ProfilePage() {
             </div>
             <div>
               <h2>{agent ? `${agent.fname} ${agent.lname}` : profile?.name ?? 'Profile'}</h2>
-              <p className="profile-subtitle">Agent profile</p>
+              <p className="profile-subtitle">Profile</p>
             </div>
           </header>
 
@@ -77,7 +77,7 @@ export default function ProfilePage() {
           ) : (
             <div className="profile-details">
               <div className="profile-row">
-                <span>Agent ID</span>
+                <span>User ID</span>
                 <strong>{agent?.userid ?? agent?.userId ?? 'Unknown'}</strong>
               </div>
               <div className="profile-row">
@@ -92,10 +92,12 @@ export default function ProfilePage() {
                 <span>Mobile</span>
                 <strong>{agent?.mobile ?? 'Not provided'}</strong>
               </div>
-              <div className="profile-row">
-                <span>Agent Code</span>
-                <strong>{agent?.agentCode ?? 'Not available'}</strong>
-              </div>
+              {agent?.agentCode && (
+                <div className="profile-row">
+                  <span>Agent Code</span>
+                  <strong>{agent.agentCode}</strong>
+                </div>
+              )}
             </div>
           )}
         </section>
