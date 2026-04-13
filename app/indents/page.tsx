@@ -44,18 +44,23 @@ export default function IndentsPage() {
   const role =
     agent?.role && typeof agent.role === 'object' ? (agent.role as { name?: string; code?: string }) : undefined;
   const roleName = role?.name ?? role?.code ?? '';
-  const viewOnly = roleName === 'Agent' || roleName === 'AGT';
+  const isAgent = roleName === 'Agent' || roleName === 'AGT';
 
   return (
     <ProtectedPage>
       <div className="dashboard-container">
         <Header />
         <main className="page-shell">
+        <p className="module-back-nav">
+          <Link href="/dashboard">← Dashboard</Link>
+        </p>
         <div className="indents-header-row">
           <h1 className="page-title">{activeTabLabel} Indents</h1>
-          <button className="create-indent-btn" onClick={() => setModalOpen(true)}>
-            + Create New Indent
-          </button>
+          {isAgent && (
+            <button className="create-indent-btn" onClick={() => setModalOpen(true)}>
+              + Create New Indent
+            </button>
+          )}
         </div>
         <nav className="indent-status-tabs" aria-label="Indent status tabs">
           {statusTabs.map((tab) => (
@@ -73,7 +78,7 @@ export default function IndentsPage() {
           onClose={() => setModalOpen(false)}
           onCreated={() => setRefreshKey((key) => key + 1)}
         />
-        <IndentManager filterStatus={filterStatus} viewOnly={viewOnly} refreshKey={refreshKey} />
+        <IndentManager filterStatus={filterStatus} viewOnly={isAgent} refreshKey={refreshKey} />
         </main>
         <Footer/>
       </div>

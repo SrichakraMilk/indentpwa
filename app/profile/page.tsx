@@ -50,6 +50,9 @@ export default function ProfilePage() {
       <div className="dashboard-container">
       <Header />
       <main className="page-shell">
+        <p className="module-back-nav">
+          <Link href="/dashboard">← Dashboard</Link>
+        </p>
         <h1 className="page-title">Profile</h1>
         <section className="card profile-card">
           <header className="profile-header">

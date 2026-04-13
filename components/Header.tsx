@@ -12,7 +12,7 @@ import Link from 'next/link';
 
 
 export default function Header() {
-  const { logout } = useAuth();
+  const { logout, agent } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
@@ -32,6 +32,12 @@ export default function Header() {
     logout();
     router.replace('/login');
   };
+
+  const role = agent?.role && typeof agent.role === 'object' 
+    ? (agent.role as { name?: string; code?: string }) 
+    : undefined;
+  const roleName = (role?.name ?? role?.code ?? '').trim();
+  const isAgent = roleName === 'Agent' || roleName === 'AGT';
 
   return (
     <div className="dashboard-header">
@@ -55,14 +61,26 @@ export default function Header() {
           ×
         </button>
         <Link href="/dashboard" className="menu-item">Dashboard</Link>
-        <Link href="/routes" className="menu-item">Routes</Link>
-        <Link href="/agents" className="menu-item">Agents</Link>
+        
+        {!isAgent && (
+          <>
+            <Link href="/routes" className="menu-item">Routes</Link>
+            <Link href="/agents" className="menu-item">Agents</Link>
+          </>
+        )}
+
         <Link href="/indents" className="menu-item">Indents</Link>
         <Link href="/payments" className="menu-item">Payments</Link>
         <Link href="/invoice" className="menu-item">Invoice</Link>
-        <Link href="/orders" className="menu-item">Orders</Link>
         <Link href="/catalog" className="menu-item">Catalog</Link>
-        <Link href="/help" className="menu-item">Help</Link>
+
+        {isAgent && (
+          <>
+            <Link href="/orders" className="menu-item">Orders</Link>
+            <Link href="/help" className="menu-item">Help</Link>
+          </>
+        )}
+
         <button type="button" onClick={handleLogout} className="menu-item menu-logout-btn">
           Logout
         </button>
