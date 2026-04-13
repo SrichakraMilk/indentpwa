@@ -495,8 +495,10 @@ export async function validateSessionOnBackend(token: string): Promise<CurrentAg
   };
 }
 
-export async function fetchIndentsApi(): Promise<IndentRecord[]> {
-  const response = await fetch(INDENTS_ENDPOINT);
+export async function fetchIndentsApi(token?: string | null): Promise<IndentRecord[]> {
+  const response = await fetch(INDENTS_ENDPOINT, {
+    headers: buildAuthHeaders(false, token)
+  });
   if (!response.ok) {
     const errorText = await response.text();
     throw new Error(`Unable to fetch indents: ${errorText || response.statusText}`);
