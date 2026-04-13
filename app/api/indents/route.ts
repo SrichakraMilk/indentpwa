@@ -91,3 +91,71 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: 'Unable to create indent' }, { status: 500 });
   }
 }
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+    if (!id) {
+      return NextResponse.json({ error: 'Missing indent ID' }, { status: 400 });
+    }
+
+    const authHeader = request.headers.get('authorization');
+    const bearer = extractBearerToken(authHeader);
+    if (!bearer) {
+      return NextResponse.json({ error: 'Missing authorization' }, { status: 401 });
+    }
+
+    const body = await request.text();
+    const response = await fetch(`${getUpstreamApiBase()}/indents?id=${id}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        Authorization: `Bearer ${bearer}`,
+        'X-Indent-Access-Token': bearer
+      },
+      body,
+      cache: 'no-store'
+    });
+
+    const text = await response.text();
+    return NextResponse.json(parseUpstreamBody(text), { status: response.status });
+  } catch (err) {
+    console.error('PATCH /api/indents error:', err);
+    return NextResponse.json({ message: 'Unable to update indent' }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+    if (!id) {
+      return NextResponse.json({ error: 'Missing indent ID' }, { status: 400 });
+    }
+
+    const authHeader = request.headers.get('authorization');
+    const bearer = extractBearerToken(authHeader);
+    if (!bearer) {
+      return NextResponse.json({ error: 'Missing authorization' }, { status: 401 });
+    }
+
+    const response = await fetch(`${getUpstreamApiBase()}/indents?id=${id}`, {
+      method: 'DELETE',
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${bearer}`,
+        'X-Indent-Access-Token': bearer
+      },
+      cache: 'no-store'
+    });
+
+    const text = await response.text();
+    return NextResponse.json(parseUpstreamBody(text), { status: response.status });
+  } catch (err) {
+    console.error('DELETE /api/indents error:', err);
+    return NextResponse.json({ message: 'Unable to delete indent' }, { status: 500 });
+  }
+}
+
