@@ -29,6 +29,7 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
   const [indents, setIndents] = useState<IndentRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedIndent, setSelectedIndent] = useState<IndentRecord | null>(null);
+  const [remarks, setRemarks] = useState('');
 
   const userRoleCode = (agent?.role as { code?: string })?.code?.toUpperCase();
 
@@ -61,7 +62,7 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
     }
   };
 
-  const handleStatusUpdate = async (_id: string, nextStatus: string) => {
+  const handleStatusUpdate = async (_id: string, nextStatus: string, actionRemarks?: string) => {
     try {
       const response = await fetch(`/api/indents?id=${encodeURIComponent(_id)}`, {
         method: 'PATCH',
@@ -69,7 +70,7 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ status: nextStatus })
+        body: JSON.stringify({ status: nextStatus, remarks: actionRemarks })
       });
       if (!response.ok) {
         const errData = await response.json();
@@ -168,27 +169,49 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
               {/* Approval Actions in Details Modal */}
               {((selectedIndent.status || '').toLowerCase() === 'pending' && 
                 (selectedIndent.currentStep || 'SE').toUpperCase() === userRoleCode) && (
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button 
-                    className="pill status-approved" 
-                    style={{ border: 'none', cursor: 'pointer', padding: '6px 15px', fontWeight: 600 }}
-                    onClick={() => {
-                        handleStatusUpdate(selectedIndent._id, 'Approved');
-                        setSelectedIndent(null);
+                <div style={{ marginTop: '10px', borderTop: '1px solid #eee', paddingTop: '15px' }}>
+                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600 }}>
+                    Add Comment (Optional)
+                  </label>
+                  <textarea
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      borderRadius: '8px',
+                      border: '1px solid #ddd',
+                      fontSize: '14px',
+                      marginBottom: '12px',
+                      minHeight: '60px',
+                      fontFamily: 'inherit'
                     }}
-                  >
-                    Approve
-                  </button>
-                  <button 
-                    className="pill status-rejected" 
-                    style={{ border: 'none', cursor: 'pointer', padding: '6px 15px', fontWeight: 600 }}
-                    onClick={() => {
-                        handleStatusUpdate(selectedIndent._id, 'Rejected');
-                        setSelectedIndent(null);
-                    }}
-                  >
-                    Reject
-                  </button>
+                    placeholder="Enter approval/rejection reason..."
+                    value={remarks}
+                    onChange={(e) => setRemarks(e.target.value)}
+                  />
+                  <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                    <button 
+                      className="pill status-approved" 
+                      style={{ border: 'none', cursor: 'pointer', padding: '10px 20px', fontWeight: 600, borderRadius: '8px' }}
+                      onClick={() => {
+                          handleStatusUpdate(selectedIndent._id, 'Approved', remarks);
+                          setRemarks('');
+                          setSelectedIndent(null);
+                      }}
+                    >
+                      Approve Indent
+                    </button>
+                    <button 
+                      className="pill status-rejected" 
+                      style={{ border: 'none', cursor: 'pointer', padding: '10px 20px', fontWeight: 600, borderRadius: '8px' }}
+                      onClick={() => {
+                          handleStatusUpdate(selectedIndent._id, 'Rejected', remarks);
+                          setRemarks('');
+                          setSelectedIndent(null);
+                      }}
+                    >
+                      Reject Indent
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
