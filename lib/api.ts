@@ -31,15 +31,22 @@ export interface AgentDetails {
   balance?: number;
   address?: string;
   isActive?: boolean;
-  role?: unknown;
-  plant?: unknown;
-  branch?: unknown;
-  route?: unknown;
-  department?: unknown;
-  executive?: unknown;
-  branchManager?: unknown;
-  areaManager?: unknown;
-  gmSales?: unknown;
+  role?: { id: string; name: string; code: string };
+  plant?: { id: string; name: string; code: string };
+  branch?: {
+    id: string;
+    name: string;
+    code: string;
+    executive?: any;
+    branchManager?: any;
+    areaManager?: any;
+  };
+  route?: { id: string; name: string; code: string };
+  department?: any;
+  executive?: any;
+  branchManager?: any;
+  areaManager?: any;
+  gmSales?: any;
 }
 
 export interface CurrentAgentResponse extends LoginResponse {
