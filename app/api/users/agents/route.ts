@@ -27,6 +27,7 @@ export async function GET(request: NextRequest) {
     const bearer = extractBearerToken(authHeader);
     const qs = request.nextUrl.searchParams.toString();
     const url = `${getUpstreamApiBase()}/users/agents${qs ? `?${qs}` : ''}`;
+    console.log('[Proxy Agents] Fetching from upstream:', url);
     const response = await fetch(url, {
       method: 'GET',
       headers: {
