@@ -83,11 +83,20 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
   };
 
   const visibleIndents = Array.isArray(indents)
-    ? filterStatus
-      ? indents.filter(
-          (indent) => (indent.status || '').toLowerCase() === filterStatus.toLowerCase()
-        )
-      : indents
+    ? indents.filter((indent) => {
+        const s = (indent.status || '').toLowerCase();
+        const matchesTab = filterStatus ? s === filterStatus.toLowerCase() : true;
+        if (!matchesTab) return false;
+
+        // RBAC: Branch Manager (BM) only sees indents that have reached them (Step BM or higher)
+        if (userRoleCode === 'BM') {
+          const step = (indent.currentStep || 'SE').toUpperCase();
+          // If the indent is pending and still at SE step, it's invisible to the BM
+          if (s === 'pending' && step === 'SE') return false;
+        }
+
+        return true;
+      })
     : [];
 
   const listHeading = filterStatus 

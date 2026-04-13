@@ -46,36 +46,51 @@ export default function DashboardPage() {
   const [agent, setAgent] = useState<AgentDetails | null>(null);
   const [profile, setProfile] = useState<{ name: string; email: string } | null>(null);
 
-  // 🔷 Load Indent Stats
+  // 🔷 Load Indent Stats (Synchronized with Role-based Visibility)
   useEffect(() => {
+    if (!profileReady) return;
+
     const loadStats = async () => {
       try {
         const indents: IndentRecord[] = await fetchIndentsApi();
+        const roleCode = (agent?.role as { code?: string })?.code?.toUpperCase();
 
         const counts = {
           pending: 0,
           approved: 0,
           rejected: 0,
-          total: indents.length,
+          total: 0,
         };
 
-        indents.forEach((i) => {
+        const filteredIndents = indents.filter((i) => {
+          const s = (i.status || '').toLowerCase();
+          
+          // BM filtering: only count pending if it has reached Step BM
+          if (roleCode === 'BM') {
+            const step = (i.currentStep || 'SE').toUpperCase();
+            if (s === 'pending' && step === 'SE') return false;
+          }
+          return true;
+        });
+
+        filteredIndents.forEach((i) => {
           const s = i.status?.toLowerCase();
           if (s === 'pending') counts.pending++;
           else if (s === 'approved') counts.approved++;
           else if (s === 'rejected') counts.rejected++;
         });
-
+        
+        counts.total = filteredIndents.length;
         setStats(counts);
       } catch (err) {
-        console.error(err);
+        console.error('Stats loading error:', err);
       } finally {
         setLoading(false);
       }
     };
 
     loadStats();
-  }, []);
+  }, [profileReady, agent]);
 
   // 🔷 Load profile / agent (needed for welcome + role)
   useEffect(() => {
