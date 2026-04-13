@@ -6,7 +6,8 @@ import {
   fetchIndentsApi,
   IndentRecord,
   IndentStatus,
-  updateIndentStatusApi
+  updateIndentStatusApi,
+  linkedEntityId
 } from '@/lib/api';
 import { useAuth } from '@/components/AuthProvider';
 
@@ -82,28 +83,47 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
     }
   };
 
+  // Normalize turn-based logic
+  const isBM = userRoleCode === 'BM' || userRoleCode === 'ABM' || userRoleCode?.includes('BRANCH MANAGER');
+  const isAM = userRoleCode === 'AM' || userRoleCode?.includes('AREA MANAGER');
+  const isGM = userRoleCode === 'GM' || userRoleCode?.includes('GM') || userRoleCode?.includes('GENERAL MANAGER');
+  
+  const myActualRoles = [userRoleCode || ''];
+  if (isBM) { myActualRoles.push('BM', 'ABM'); }
+  if (isAM) { myActualRoles.push('AM'); }
+  if (isGM) { myActualRoles.push('GM'); }
+
   const visibleIndents = Array.isArray(indents)
     ? indents.filter((indent) => {
         const s = (indent.status || '').toLowerCase();
         const currentStep = (indent.currentStep || 'SE').toUpperCase();
         
-        // Check my personal involvement
-        const myActualRole = (userRoleCode === 'BM' || userRoleCode === 'ABM') ? ['BM', 'ABM'] : [userRoleCode];
-        
         const IApproved = indent.approvalLog?.some(log => 
-          myActualRole.includes(log.role.toUpperCase()) && log.status === 'Approved'
+          myActualRoles.includes((log.role || '').toUpperCase()) && log.status === 'Approved'
         );
         const IRejected = indent.approvalLog?.some(log => 
-          myActualRole.includes(log.role.toUpperCase()) && log.status === 'Rejected'
+          myActualRoles.includes((log.role || '').toUpperCase()) && log.status === 'Rejected'
         );
 
         if (filterStatus === 'pending') {
           // If the global status is not pending, it's not pending for anyone
           if (s !== 'pending') return false;
           
-          // It's pending globally. Is it MY turn?
-          const isMyTurn = myActualRole.includes(currentStep);
-          return isMyTurn;
+          // It's pending globally. Is it MY turn to approve?
+          const isMyTurn = myActualRoles.includes(currentStep);
+          
+          // OR, is it MY indent (I am the agent)?
+          const currentUserId = String(agent?._id || agent?.id || agent?.userId || '');
+          const indentAgentId = String(linkedEntityId(indent.agent) || '');
+          const indentCreatorId = String(linkedEntityId(indent.createdBy) || '');
+          
+          const isMyIndent = (currentUserId !== '') && (currentUserId === indentAgentId || currentUserId === indentCreatorId);
+
+          // If I am an Agent/AGT, I should see all my pending indents
+          const isAgent = userRoleCode === 'AGENT' || userRoleCode === 'AGT';
+          if (isAgent && isMyIndent) return true;
+
+          return isMyTurn || isMyIndent;
         }
 
         if (filterStatus === 'approved') {
@@ -145,7 +165,7 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
           <ul className="indent-list">
             {visibleIndents.map((indent) => {
               const currentIndentStep = (indent.currentStep || 'SE').toUpperCase();
-              const isTurn = (indent.status || '').toLowerCase() === 'pending' && currentIndentStep === userRoleCode;
+              const isTurn = (indent.status || '').toLowerCase() === 'pending' && myActualRoles.includes(currentIndentStep);
               return (
                 <li
                   key={indent._id}
@@ -206,7 +226,7 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
               
               {/* Approval Actions in Details Modal */}
               {((selectedIndent.status || '').toLowerCase() === 'pending' && 
-                (selectedIndent.currentStep || 'SE').toUpperCase() === userRoleCode) && (
+                myActualRoles.includes((selectedIndent.currentStep || '').toUpperCase() || 'SE')) && (
                 <div style={{ marginTop: '10px', borderTop: '1px solid #eee', paddingTop: '15px' }}>
                   <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600 }}>
                     Add Comment (Optional)

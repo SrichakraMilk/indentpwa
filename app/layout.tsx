@@ -15,13 +15,15 @@ export const metadata = {
 
   manifest: '/manifest.json',
 
-  themeColor: '#0e7490',
-
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
     title: 'Indent App'
   }
+};
+
+export const viewport = {
+  themeColor: '#0e7490',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

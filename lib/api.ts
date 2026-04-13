@@ -194,7 +194,9 @@ function normalizeIndentRecord(raw: unknown): IndentRecord {
     currentStep: typeof r.currentStep === 'string' ? r.currentStep : (r.status?.toString().toLowerCase() === 'pending' ? 'SE' : undefined),
     approvalLog: Array.isArray(r.approvalLog) ? r.approvalLog : undefined,
     remarks: typeof r.remarks === 'string' ? r.remarks : undefined,
-    items
+    items,
+    agent: r.agent,
+    createdBy: r.createdBy
   };
 }
 
@@ -212,6 +214,8 @@ export interface IndentRecord {
   }>;
   remarks?: string;
   items: IndentItem[];
+  agent?: any;
+  createdBy?: any;
 }
 
 export interface Category {
@@ -407,10 +411,10 @@ function normalizeAgentProfile(data: any): { name: string; email: string; agent?
     email,
     agent: agent
       ? {
-          _id: agent._id ?? agent.id,
-          id: agent.id ?? agent._id,
-          userId: agent.userId ?? agent.userid ?? agent._id ?? '',
-          userid: agent.userid ?? agent.userId ?? agent._id ?? '',
+          _id: agent._id ?? agent.id ?? agent.userId ?? agent.userid,
+          id: agent.id ?? agent._id ?? agent.userId ?? agent.userid,
+          userId: agent.userId ?? agent.userid ?? agent._id ?? agent.id ?? '',
+          userid: agent.userid ?? agent.userId ?? agent._id ?? agent.id ?? '',
           fname: agent.fname,
           lname: agent.lname,
           email: agent.email,
