@@ -143,6 +143,7 @@ export default function NewIndentModal({
         route: resolveId(agent?.route),
         plant: resolveId(agent?.plant),
         department: resolveId(agent?.department),
+        branch: resolveId(agent?.branch),
         remarks: `Created from app with ${rows.length} item(s)`,
         agent: resolveId(agent?._id) ?? resolveId(agent?.id) ?? agent?.userId ?? agent?.userid,
         executive: resolveId(agent?.branch?.executive),

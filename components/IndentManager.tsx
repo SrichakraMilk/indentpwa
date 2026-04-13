@@ -112,12 +112,12 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
           // It's pending globally. Is it MY turn to approve?
           const isMyTurn = myActualRoles.includes(currentStep);
           
-          // OR, is it MY indent (I am the agent)?
-          const currentUserId = String(agent?._id || agent?.id || agent?.userId || '');
-          const indentAgentId = String(linkedEntityId(indent.agent) || '');
-          const indentCreatorId = String(linkedEntityId(indent.createdBy) || '');
+          // OR, is it MY indent? Check all possible IDs for robustness
+          const myIds = [agent?._id, agent?.id, agent?.userId].filter(Boolean).map(id => String(id));
+          const targetAgentId = linkedEntityId(indent.agent);
+          const targetCreatorId = linkedEntityId(indent.createdBy);
           
-          const isMyIndent = (currentUserId !== '') && (currentUserId === indentAgentId || currentUserId === indentCreatorId);
+          const isMyIndent = myIds.some(myId => myId === String(targetAgentId || '') || myId === String(targetCreatorId || ''));
 
           // If I am an Agent/AGT, I should see all my pending indents
           const isAgent = userRoleCode === 'AGENT' || userRoleCode === 'AGT';
@@ -127,9 +127,16 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
         }
 
         if (filterStatus === 'approved') {
-          // It's globally approved OR I specifically approved it and it's still in workflow
+          // If it's globally approved, everyone sees it here
           if (s === 'approved') return true;
+          
+          // If it's pending globally, only SHOW in 'Approved' tab if I specifically 
+          // approved it and I am NOT the agent (who should keep seeing it in 'Pending').
+          const isAgent = userRoleCode === 'AGENT' || userRoleCode === 'AGT';
+          if (isAgent) return false; // Agents only see FINAL approved ones in this tab
+
           if (s === 'pending' && IApproved) return true;
+          
           return false;
         }
 
@@ -179,7 +186,14 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
                     <h3>{indent.indentNumber}</h3>
                     {(indent.status || '').toLowerCase() === 'pending' && indent.currentStep && (
                       <p style={{ fontSize: '13px', fontWeight: 600, color: '#0e7490', marginTop: '4px' }}>
-                        Step: {indent.currentStep}
+                        {(() => {
+                          const step = (indent.currentStep || '').toUpperCase();
+                          if (step === 'SE') return 'Pending SE approval';
+                          if (step === 'ABM' || step === 'BM') return 'Pending Branch Manager approval';
+                          if (step === 'AM') return 'Pending Area Manager approval';
+                          if (step === 'GM') return 'Pending GM Sales approval';
+                          return `Step: ${indent.currentStep}`;
+                        })()}
                       </p>
                     )}
                     <p style={{ fontSize: '12px', opacity: 0.7 }}>
@@ -222,6 +236,18 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
                 <span className={`pill status-${selectedIndent.status?.toLowerCase()}`}>
                   {selectedIndent.status}
                 </span>
+                {(selectedIndent.status || '').toLowerCase() === 'pending' && selectedIndent.currentStep && (
+                  <span style={{ marginLeft: '10px', fontSize: '13px', fontWeight: 600, color: '#0e7490' }}>
+                    ({(() => {
+                      const step = (selectedIndent.currentStep || '').toUpperCase();
+                      if (step === 'SE') return 'Pending SE approval';
+                      if (step === 'ABM' || step === 'BM') return 'Pending Branch Manager approval';
+                      if (step === 'AM') return 'Pending Area Manager approval';
+                      if (step === 'GM') return 'Pending GM Sales approval';
+                      return step;
+                    })()})
+                  </span>
+                )}
               </p>
               
               {/* Approval Actions in Details Modal */}
