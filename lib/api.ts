@@ -543,6 +543,7 @@ export interface CreateIndentRequest {
   }>;
   plant?: string;
   department?: string;
+  branch?: string;
   remarks?: string;
   agent?: string;
   executive?: string;
