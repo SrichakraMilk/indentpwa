@@ -230,7 +230,8 @@ function normalizeIndentRecord(raw: unknown): IndentRecord {
     remarks: typeof r.remarks === 'string' ? r.remarks : undefined,
     items,
     agent: r.agent,
-    createdBy: r.createdBy
+    createdBy: r.createdBy,
+    deliveryChallan: r.deliveryChallan
   };
 }
 
@@ -250,6 +251,7 @@ export interface IndentRecord {
   items: IndentItem[];
   agent?: any;
   createdBy?: any;
+  deliveryChallan?: any;
 }
 
 export interface Category {

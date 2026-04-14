@@ -33,6 +33,7 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editData, setEditData] = useState<IndentEditData | undefined>(undefined);
   const [selectedIndent, setSelectedIndent] = useState<IndentRecord | null>(null);
+  const [showDcDetails, setShowDcDetails] = useState(false);
   const [remarks, setRemarks] = useState('');
 
   const userRoleCode = (agent?.role as { code?: string })?.code?.toUpperCase();
@@ -254,6 +255,33 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
               </p>
             </div>
 
+            {selectedIndent.deliveryChallan && (
+              <div 
+                className="dc-link-card" 
+                style={{ 
+                  marginBottom: '20px', 
+                  padding: '12px', 
+                  backgroundColor: '#f0f9ff', 
+                  borderRadius: '10px', 
+                  border: '1px solid #bae6fd',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}
+              >
+                <div>
+                  <p style={{ margin: 0, fontSize: '12px', color: '#0369a1', fontWeight: 600 }}>DELIVERY CHALLAN</p>
+                  <p style={{ margin: 0, fontSize: '15px', fontWeight: 700 }}>{selectedIndent.deliveryChallan.dcNumber || 'Generated'}</p>
+                </div>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); setShowDcDetails(true); }}
+                  style={{ padding: '6px 12px', backgroundColor: '#0ea5e9', color: 'white', border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: 600 }}
+                >
+                  View Link
+                </button>
+              </div>
+            )}
+
             <h4>Items</h4>
             {selectedIndent.items?.length ? (
               <ul className="indent-details-items">
@@ -390,6 +418,73 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
         onCreated={refresh}
         initialData={editData}
       />
+      {/* DC Details Sub-Modal */}
+      {showDcDetails && selectedIndent?.deliveryChallan && (
+        <div className="indent-details-overlay" style={{ zIndex: 3000 }} onClick={() => setShowDcDetails(false)}>
+          <div className="indent-details-card" onClick={(e) => e.stopPropagation()} style={{ background: '#fff', maxWidth: '350px' }}>
+            <div className="indent-details-header">
+              <h3>DC: {selectedIndent.deliveryChallan.dcNumber}</h3>
+              <button type="button" className="indent-details-close" onClick={() => setShowDcDetails(false)}>×</button>
+            </div>
+            
+            <div className="print-content">
+              <style jsx>{`
+                @media print {
+                  .indent-details-header, .indent-actions, .confirm-btn, .indent-details-close { display: none !important; }
+                  .indent-details-overlay { position: absolute !important; display: block !important; padding: 0 !important; background: white !important; }
+                  .indent-details-card { width: 100% !important; max-width: 100% !important; box-shadow: none !important; border: none !important; margin: 0 !important; }
+                  .print-header { display: flex !important; align-items: center !important; border-bottom: 2px solid #000 !important; padding-bottom: 10px !important; margin-bottom: 20px !important; }
+                  .signature-row { display: flex !important; justify-content: space-between !important; margin-top: 50px !important; padding-top: 10px !important; }
+                }
+                .print-header { display: none; margin-bottom: 20px; }
+                .signature-row { display: none; }
+                .sig-box { border-top: 1px solid #000; width: 45%; text-align: center; padding-top: 5px; font-weight: 600; font-size: 11px; }
+              `}</style>
+
+              <div className="print-header">
+                <div style={{ width: '80px' }}>
+                  <img src="/assets/logo.png" alt="Srichakra" style={{ maxHeight: '40px', width: 'auto' }} />
+                </div>
+                <div style={{ flex: 1, textAlign: 'center' }}>
+                  <h3 style={{ margin: 0, color: '#2563eb' }}>Srichakra Milk Products LLP</h3>
+                  <h4 style={{ margin: 0, textTransform: 'uppercase', letterSpacing: '1px', fontSize: '14px' }}>Delivery Challan</h4>
+                </div>
+                <div style={{ width: '80px' }}></div>
+              </div>
+
+              <div style={{ marginBottom: '15px', padding: '10px', background: '#f8fafc', borderRadius: '8px', fontSize: '13px' }}>
+              <p style={{ margin: '4px 0' }}><strong>Status:</strong> {selectedIndent.deliveryChallan.status}</p>
+              <p style={{ margin: '4px 0' }}><strong>Date:</strong> {new Date(selectedIndent.deliveryChallan.dcDate).toLocaleDateString()}</p>
+            </div>
+
+            <h4>Items In DC</h4>
+            <ul className="indent-details-items" style={{ maxHeight: '200px', overflowY: 'auto' }}>
+              {selectedIndent.deliveryChallan.items?.map((item: any, idx: number) => (
+                <li key={idx}>
+                  <span>{item.product?.name || 'Product'} {item.size ? `(${item.size})` : ''}</span>
+                  <span>{item.quantity}</span>
+                </li>
+              ))}
+            </ul>
+
+            <div className="signature-row">
+              <div className="sig-box">Accounts Executive Signature</div>
+              <div className="sig-box">Accounts Incharge Signature</div>
+            </div>
+            </div>
+
+            <div className="indent-actions" style={{ marginTop: '20px', borderTop: '1px solid #e5e7eb', paddingTop: '15px' }}>
+              <button 
+                className="confirm-btn" 
+                style={{ width: '100%', backgroundColor: '#0ea5e9' }}
+                onClick={() => window.print()}
+              >
+                🖨️ Print Challan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

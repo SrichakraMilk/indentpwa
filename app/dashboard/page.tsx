@@ -249,7 +249,8 @@ export default function DashboardPage() {
                     {(() => {
                       const code = (agent?.role as { code?: string })?.code?.toUpperCase() || "";
                       const isAccounts = code === 'AE' || code === 'AI';
-                      if (isAccounts) {
+                      const isLogistics = code === 'DS' || code === 'SEC';
+                      if (isAccounts || isLogistics) {
                         return (
                           <Link href="/delivery-challan" className="menu-card">
                             <span className="menu-card-icon" aria-hidden>
