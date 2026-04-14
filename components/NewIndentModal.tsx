@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Category, createIndentApi, fetchProductCategoriesApi, fetchProductsApi, Product } from '@/lib/api';
+import { Category, createIndentApi, fetchProductCategoriesApi, fetchProductsApi, Product, resubmitIndentApi } from '@/lib/api';
 import { useAuth } from '@/components/AuthProvider';
 
 interface IndentRow {
@@ -10,6 +10,17 @@ interface IndentRow {
   product: string;
   size: string;
   qty: number;
+}
+
+export interface IndentEditData {
+  id: string;
+  items: Array<{
+    category: any;
+    product: any;
+    quantity: number;
+    size?: string;
+  }>;
+  remarks?: string;
 }
 
 
@@ -29,6 +40,7 @@ export default function NewIndentModal({
   open: boolean;
   onClose: () => void;
   onCreated?: () => void;
+  initialData?: IndentEditData;
 }) {
   const { token, agent } = useAuth();
 
@@ -39,6 +51,7 @@ export default function NewIndentModal({
   const [selectedSize, setSelectedSize] = useState('');
   const [qty, setQty] = useState('');
   const [rows, setRows] = useState<IndentRow[]>([]);
+  const [remarks, setRemarks] = useState('');
   const [error, setError] = useState<{cat?: boolean; prod?: boolean; size?: boolean; qty?: boolean}>({});
   const [submitting, setSubmitting] = useState(false);
 
@@ -73,6 +86,28 @@ export default function NewIndentModal({
       cancelled = true;
     };
   }, [open]);
+
+  useEffect(() => {
+    if (open && initialData) {
+      setRemarks(initialData.remarks || '');
+      const mappedRows: IndentRow[] = initialData.items.map((item, idx) => ({
+        id: String(idx),
+        categoryId: item.category?._id || item.category,
+        category: item.category?.name || 'Category',
+        productId: item.product?._id || item.product,
+        product: item.product?.name || 'Product',
+        size: item.size || '',
+        qty: item.quantity
+      }));
+      setRows(mappedRows);
+    } else if (open) {
+      setRows([]);
+      setRemarks('');
+      setSelectedCategory('');
+      setSelectedProduct('');
+      setSelectedSize('');
+    }
+  }, [open, initialData]);
 
   const filteredProducts = allProducts.filter((p) => p.categoryId === selectedCategory);
   const uniqueProductNames = Array.from(new Set(filteredProducts.map((p) => p.name))).sort((a, b) =>
@@ -139,25 +174,25 @@ export default function NewIndentModal({
         return undefined;
       };
 
-      await createIndentApi({
-        route: resolveId(agent?.route),
-        plant: resolveId(agent?.plant),
-        department: resolveId(agent?.department),
-        branch: resolveId(agent?.branch),
-        remarks: `Created from app with ${rows.length} item(s)`,
-        agent: resolveId(agent?._id) ?? resolveId(agent?.id) ?? agent?.userId ?? agent?.userid,
-        executive: resolveId(agent?.branch?.executive),
-        branchManager: resolveId(agent?.branch?.branchManager),
-        areaManager: resolveId(agent?.branch?.areaManager),
-        gmSales: resolveId(agent?.gmSales),
-        items: rows.map((row) => ({
-          category: row.categoryId,
-          product: row.productId,
-          quantity: row.qty,
-          size: row.size.trim() || undefined
-        }))
-      }, token);
+      if (initialData) {
+        await resubmitIndentApi(initialData.id, items, remarks || 'Resubmitted', token);
+      } else {
+        await createIndentApi({
+          route: resolveId(agent?.route),
+          plant: resolveId(agent?.plant),
+          department: resolveId(agent?.department),
+          branch: resolveId(agent?.branch),
+          remarks: remarks || `Created from app with ${rows.length} item(s)`,
+          agent: resolveId(agent?._id) ?? resolveId(agent?.id) ?? agent?.userId ?? agent?.userid,
+          executive: resolveId(agent?.branch?.executive),
+          branchManager: resolveId(agent?.branch?.branchManager),
+          areaManager: resolveId(agent?.branch?.areaManager),
+          gmSales: resolveId(agent?.gmSales),
+          items
+        }, token);
+      }
       setRows([]);
+      setRemarks('');
       setQty('');
       setSelectedCategory('');
       setSelectedProduct('');
@@ -245,7 +280,20 @@ export default function NewIndentModal({
           </label>
         </div>
 
-        <div className="indent-modal-actions-row">
+        {/* Remarks */}
+        <div className="mt-4 px-4">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Remarks / Note</label>
+          <textarea
+            value={remarks}
+            onChange={(e) => setRemarks(e.target.value)}
+            className="w-full border rounded-lg p-2 text-sm"
+            rows={2}
+            placeholder="Add any specific instructions or notes..."
+          />
+        </div>
+
+        {/* Summary */}
+        <div className="mt-6 px-4 py-3 bg-gray-50 border-t flex justify-between items-center">
           <button type="button" onClick={handleAddRow} className="indent-modal-add-btn">
             Add Item
           </button>

@@ -573,6 +573,22 @@ export async function createIndentApi(input: CreateIndentRequest, token?: string
   }
 }
 
+export async function resubmitIndentApi(id: string, items: any[], remarks?: string, token?: string | null): Promise<void> {
+  const response = await fetch(`${INDENTS_ENDPOINT}?id=${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    headers: buildAuthHeaders(true, token),
+    body: JSON.stringify({
+      status: 'Pending',
+      items,
+      remarks: remarks || 'Resubmitted'
+    })
+  });
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Unable to resubmit indent: ${errorText || response.statusText}`);
+  }
+}
+
 function refPersonLabel(ref: unknown): string | undefined {
   if (!ref || typeof ref !== 'object' || Array.isArray(ref)) return undefined;
   const o = ref as Record<string, unknown>;

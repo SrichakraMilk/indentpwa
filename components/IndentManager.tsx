@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import NewIndentModal, { IndentEditData } from './NewIndentModal';
 import {
   deleteIndentApi,
   fetchIndentsApi,
@@ -29,6 +30,8 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
   const { token, agent } = useAuth();
   const [indents, setIndents] = useState<IndentRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editData, setEditData] = useState<IndentEditData | undefined>(undefined);
   const [selectedIndent, setSelectedIndent] = useState<IndentRecord | null>(null);
   const [remarks, setRemarks] = useState('');
 
@@ -106,20 +109,16 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
         );
 
         if (filterStatus === 'pending') {
-          // If the global status is not pending, it's not pending for anyone
           if (s !== 'pending') return false;
           
-          // It's pending globally. Is it MY turn to approve?
           const isMyTurn = myActualRoles.includes(currentStep);
           
-          // OR, is it MY indent? Check all possible IDs for robustness
           const myIds = [agent?._id, agent?.id, agent?.userId].filter(Boolean).map(id => String(id));
           const targetAgentId = linkedEntityId(indent.agent);
           const targetCreatorId = linkedEntityId(indent.createdBy);
           
           const isMyIndent = myIds.some(myId => myId === String(targetAgentId || '') || myId === String(targetCreatorId || ''));
 
-          // If I am an Agent/AGT, I should see all my pending indents
           const isAgent = userRoleCode === 'AGENT' || userRoleCode === 'AGT';
           if (isAgent && isMyIndent) return true;
 
@@ -127,13 +126,10 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
         }
 
         if (filterStatus === 'approved') {
-          // If it's globally approved, everyone sees it here
           if (s === 'approved') return true;
           
-          // If it's pending globally, only SHOW in 'Approved' tab if I specifically 
-          // approved it and I am NOT the agent (who should keep seeing it in 'Pending').
           const isAgent = userRoleCode === 'AGENT' || userRoleCode === 'AGT';
-          if (isAgent) return false; // Agents only see FINAL approved ones in this tab
+          if (isAgent) return false;
 
           if (s === 'pending' && IApproved) return true;
           
@@ -141,7 +137,6 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
         }
 
         if (filterStatus === 'rejected') {
-          // It's globally rejected OR I specifically rejected it
           if (s === 'rejected') return true;
           if (s === 'pending' && IRejected) return true;
           return false;
@@ -249,55 +244,6 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
                   </span>
                 )}
               </p>
-              
-              {/* Approval Actions in Details Modal */}
-              {((selectedIndent.status || '').toLowerCase() === 'pending' && 
-                myActualRoles.includes((selectedIndent.currentStep || '').toUpperCase() || 'SE')) && (
-                <div style={{ marginTop: '10px', borderTop: '1px solid #eee', paddingTop: '15px' }}>
-                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600 }}>
-                    Add Comment (Optional)
-                  </label>
-                  <textarea
-                    style={{
-                      width: '100%',
-                      padding: '10px',
-                      borderRadius: '8px',
-                      border: '1px solid #ddd',
-                      fontSize: '14px',
-                      marginBottom: '12px',
-                      minHeight: '60px',
-                      fontFamily: 'inherit'
-                    }}
-                    placeholder="Enter approval/rejection reason..."
-                    value={remarks}
-                    onChange={(e) => setRemarks(e.target.value)}
-                  />
-                  <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                    <button 
-                      className="pill status-approved" 
-                      style={{ border: 'none', cursor: 'pointer', padding: '10px 20px', fontWeight: 600, borderRadius: '8px' }}
-                      onClick={() => {
-                          handleStatusUpdate(selectedIndent._id, 'Approved', remarks);
-                          setRemarks('');
-                          setSelectedIndent(null);
-                      }}
-                    >
-                      Approve Indent
-                    </button>
-                    <button 
-                      className="pill status-rejected" 
-                      style={{ border: 'none', cursor: 'pointer', padding: '10px 20px', fontWeight: 600, borderRadius: '8px' }}
-                      onClick={() => {
-                          handleStatusUpdate(selectedIndent._id, 'Rejected', remarks);
-                          setRemarks('');
-                          setSelectedIndent(null);
-                      }}
-                    >
-                      Reject Indent
-                    </button>
-                  </div>
-                </div>
-              )}
             </div>
 
             <h4>Items</h4>
@@ -341,9 +287,101 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
                 </div>
               </div>
             )}
+            {/* Action Buttons */}
+            <div className="indent-actions" style={{ marginTop: '20px', borderTop: '1px solid #e5e7eb', paddingTop: '15px' }}>
+              {(() => {
+                const s = (selectedIndent.status || '').toLowerCase();
+                const currentStep = (selectedIndent.currentStep || '').toUpperCase();
+                const isTurn = s === 'pending' && myActualRoles.includes(currentStep);
+                const isRejected = s === 'rejected';
+                
+                // Ownership check for Resubmit
+                const myIds = [agent?._id, agent?.id, agent?.userId].filter(Boolean).map(id => String(id));
+                const targetAgentId = linkedEntityId(selectedIndent.agent);
+                const targetCreatorId = linkedEntityId(selectedIndent.createdBy);
+                const isMyIndent = myIds.some(myId => myId === String(targetAgentId || '') || myId === String(targetCreatorId || ''));
+                const isAgentUser = myActualRoles.some(r => r === 'AGENT' || r === 'AGT' || r.includes('SALES AGENT'));
+
+                if (isTurn) {
+                  return (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      <textarea
+                        style={{
+                          width: '100%',
+                          padding: '10px',
+                          borderRadius: '8px',
+                          border: '1px solid #ddd',
+                          fontSize: '14px',
+                          minHeight: '60px'
+                        }}
+                        placeholder="Add a comment (optional)..."
+                        value={remarks}
+                        onChange={(e) => setRemarks(e.target.value)}
+                      />
+                      <div style={{ display: 'flex', gap: '10px' }}>
+                        <button
+                          className="pill status-approved"
+                          onClick={() => {
+                            handleStatusUpdate(selectedIndent._id, 'Approved', remarks);
+                            setRemarks('');
+                            setSelectedIndent(null);
+                          }}
+                          style={{ flex: 1, padding: '10px', cursor: 'pointer' }}
+                        >
+                          Approve
+                        </button>
+                        <button
+                          className="pill status-rejected"
+                          onClick={() => {
+                            handleStatusUpdate(selectedIndent._id, 'Rejected', remarks);
+                            setRemarks('');
+                            setSelectedIndent(null);
+                          }}
+                          style={{ flex: 1, padding: '10px', cursor: 'pointer' }}
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    </div>
+                  );
+                }
+
+                if (isRejected && (isAgentUser || isMyIndent)) {
+                  return (
+                    <button
+                      className="pill status-pending"
+                      style={{ width: '100%', padding: '12px', background: '#0e7490', color: '#fff', cursor: 'pointer', fontWeight: 700 }}
+                      onClick={() => {
+                        setEditData({
+                          id: selectedIndent._id,
+                          items: selectedIndent.items,
+                          remarks: selectedIndent.remarks
+                        });
+                        setSelectedIndent(null);
+                        setIsModalOpen(true);
+                      }}
+                    >
+                      Edit & Resubmit Indent
+                    </button>
+                  );
+                }
+
+                return null;
+              })()}
+            </div>
           </div>
         </div>
       ) : null}
+
+      <NewIndentModal 
+        open={isModalOpen} 
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditData(undefined);
+        }} 
+        onCreated={refresh}
+        initialData={editData}
+      />
     </div>
   );
 }
