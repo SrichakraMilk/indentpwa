@@ -8,6 +8,9 @@ import {
   IndentRecord,
   IndentStatus,
   updateIndentStatusApi,
+  rejectIndentApi,
+  fetchDcApi,
+  updateDcStatusApi,
   linkedEntityId
 } from '@/lib/api';
 import { useAuth } from '@/components/AuthProvider';
@@ -510,13 +513,46 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
                  </button>
                )}
 
-               <button 
-                 className="confirm-btn" 
-                 style={{ flex: 1, backgroundColor: '#2563eb' }}
-                 onClick={() => window.print()}
-               >
-                 🖨️ Print DC
-               </button>
+               {(() => {
+                 const roleCode = (agent?.role as any)?.code?.toUpperCase() || "";
+                 const isSec = roleCode === 'SEC' || roleCode === 'SECURITY';
+                 if (isSec && selectedIndent.deliveryChallan.status === 'Security Check') {
+                   return (
+                    <button 
+                      className="confirm-btn" 
+                      style={{ flex: 1, backgroundColor: '#8b5cf6' }}
+                      onClick={async () => {
+                        try {
+                           await updateDcStatusApi(selectedIndent.deliveryChallan._id, 'Approved', (agent as any).userId || (agent as any).id);
+                           alert('Security Cleared - Indent Fulfilled');
+                           setShowDcDetails(false);
+                        } catch (err) {
+                           alert('Failed to clear security');
+                        }
+                      }}
+                    >
+                      ✅ Security Checked
+                    </button>
+                   );
+                 }
+                 return null;
+               })()}
+
+               {(() => {
+                 const roleCode = (agent?.role as any)?.code?.toUpperCase() || "";
+                 const isLogisticsOrSec = ['DS', 'SEC', 'SECURITY', 'SUP'].includes(roleCode);
+                 if (isLogisticsOrSec) return null;
+                 
+                 return (
+                   <button 
+                     className="confirm-btn" 
+                     style={{ flex: 1, backgroundColor: '#2563eb' }}
+                     onClick={() => window.print()}
+                   >
+                     🖨️ Print DC
+                   </button>
+                 );
+               })()}
              </div>
           </div>
         </div>

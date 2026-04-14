@@ -80,7 +80,7 @@ export interface DcRecord {
   plant: { name: string; code: string };
   items: DcItem[];
   dcDate: string;
-  status: 'Draft' | 'In Progress' | 'Security Check' | 'Dispatched' | 'Delivered';
+  status: 'Draft' | 'In Progress' | 'Security Check' | 'Dispatched' | 'Delivered' | 'Approved';
   remarks?: string;
 }
 

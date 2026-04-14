@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { fetchDcApi, DcRecord } from '@/lib/api';
+import { fetchDcApi, DcRecord, updateDcStatusApi } from '@/lib/api';
+import { useAuth } from '@/components/AuthProvider';
 
 interface DcManagerProps {
   status?: string;
@@ -9,6 +10,7 @@ interface DcManagerProps {
 }
 
 export default function DcManager({ status, refreshKey }: DcManagerProps) {
+  const { agent } = useAuth();
   const [dcs, setDcs] = useState<DcRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDc, setSelectedDc] = useState<DcRecord | null>(null);
@@ -176,9 +178,42 @@ export default function DcManager({ status, refreshKey }: DcManagerProps) {
                  </button>
                )}
 
-               <button className="confirm-btn" style={{ flex: 1, background: '#2563eb' }} onClick={() => window.print()}>
-                  🖨️ Print DC
-               </button>
+               {(() => {
+                 const roleCode = (agent?.role as any)?.code?.toUpperCase() || "";
+                 const isSec = roleCode === 'SEC' || roleCode === 'SECURITY';
+                 if (isSec && selectedDc.status === 'Security Check') {
+                   return (
+                    <button 
+                      className="confirm-btn" 
+                      style={{ flex: 1, background: '#8b5cf6' }} 
+                      onClick={async () => {
+                        try {
+                           await updateDcStatusApi(selectedDc._id, 'Approved', (agent as any).userId || (agent as any).id);
+                           alert('Security Cleared - Indent Fulfilled');
+                           setSelectedDc(null);
+                        } catch (err) {
+                           alert('Failed to clear security');
+                        }
+                      }}
+                    >
+                      ✅ Security Checked
+                    </button>
+                   );
+                 }
+                 return null;
+               })()}
+
+               {(() => {
+                 const roleCode = (agent?.role as any)?.code?.toUpperCase() || "";
+                 const isLogisticsOrSec = ['DS', 'SEC', 'SECURITY', 'SUP'].includes(roleCode);
+                 if (isLogisticsOrSec) return null;
+                 
+                 return (
+                   <button className="confirm-btn" style={{ flex: 1, background: '#2563eb' }} onClick={() => window.print()}>
+                      🖨️ Print DC
+                   </button>
+                 );
+               })()}
             </div>
           </div>
         </div>
