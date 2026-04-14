@@ -89,12 +89,16 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
   // Normalize turn-based logic
   const isBM = userRoleCode === 'BM' || userRoleCode === 'ABM' || userRoleCode?.includes('BRANCH MANAGER');
   const isAM = userRoleCode === 'AM' || userRoleCode?.includes('AREA MANAGER');
-  const isGM = userRoleCode === 'GM' || userRoleCode?.includes('GM') || userRoleCode?.includes('GENERAL MANAGER');
+  const isGM = userRoleCode === 'GM' || userRoleCode?.includes('GENERAL MANAGER');
+  const isAE = userRoleCode === 'AE' || userRoleCode?.includes('ACCOUNTS EXECUTIVE');
+  const isAI = userRoleCode === 'AI' || userRoleCode?.includes('ACCOUNTS INCHARGE');
   
   const myActualRoles = [userRoleCode || ''];
   if (isBM) { myActualRoles.push('BM', 'ABM'); }
   if (isAM) { myActualRoles.push('AM'); }
   if (isGM) { myActualRoles.push('GM'); }
+  if (isAE) { myActualRoles.push('AE'); }
+  if (isAI) { myActualRoles.push('AI'); }
 
   const visibleIndents = Array.isArray(indents)
     ? indents.filter((indent) => {
@@ -187,6 +191,8 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
                           if (step === 'ABM' || step === 'BM') return 'Pending Branch Manager approval';
                           if (step === 'AM') return 'Pending Area Manager approval';
                           if (step === 'GM') return 'Pending GM Sales approval';
+                          if (step === 'AE') return 'Pending Accounts Executive approval';
+                          if (step === 'AI') return 'Pending Accounts Incharge approval';
                           return `Step: ${indent.currentStep}`;
                         })()}
                       </p>
@@ -239,6 +245,8 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
                       if (step === 'ABM' || step === 'BM') return 'Pending Branch Manager approval';
                       if (step === 'AM') return 'Pending Area Manager approval';
                       if (step === 'GM') return 'Pending GM Sales approval';
+                      if (step === 'AE') return 'Pending Accounts Executive approval';
+                      if (step === 'AI') return 'Pending Accounts Incharge approval';
                       return step;
                     })()})
                   </span>
