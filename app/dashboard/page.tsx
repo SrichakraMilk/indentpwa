@@ -249,7 +249,7 @@ export default function DashboardPage() {
                     {(() => {
                       const code = (agent?.role as { code?: string })?.code?.toUpperCase() || "";
                       const isAccounts = code === 'AE' || code === 'AI';
-                      const isLogistics = code === 'DS' || code === 'SEC';
+                      const isLogistics = code === 'DS' || code === 'SEC' || code === 'SUP';
                       if (isAccounts || isLogistics) {
                         return (
                           <Link href="/delivery-challan" className="menu-card">
