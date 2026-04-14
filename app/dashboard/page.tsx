@@ -165,105 +165,90 @@ export default function DashboardPage() {
                   <div className="skeleton badge"></div>
                 </div>
               ))
-            : isAgentRole(agent)
-              ? (
-                  <>
-                    <Link href="/indent" className="menu-card">
-                      <span className="menu-card-icon" aria-hidden>
-                        📋
-                      </span>
-                      <p>Indent</p>
-                      <span>{stats.pending}</span>
+            : (() => {
+                const code = (agent?.role as { code?: string })?.code?.toUpperCase() || "";
+                const isAccounts = code === 'AE' || code === 'AI';
+                const isLogistics = code === 'DS' || code === 'SEC' || code === 'SUP';
+
+                // 🚛 SPECIAL VIEW: Logistics & Security only see Delivery Challan
+                if (isLogistics) {
+                  return (
+                    <Link href="/delivery-challan" className="menu-card">
+                      <span className="menu-card-icon" aria-hidden>🚚</span>
+                      <p>Delivery Challan</p>
                     </Link>
-                    <Link href="/payments" className="menu-card">
-                      <span className="menu-card-icon" aria-hidden>
-                        💳
-                      </span>
-                      <p>Payments</p>
-                    </Link>
-                    <Link href="/invoice" className="menu-card">
-                      <span className="menu-card-icon" aria-hidden>
-                        🧾
-                      </span>
-                      <p>Invoice</p>
-                    </Link>
-                    <Link href="/orders" className="menu-card">
-                      <span className="menu-card-icon" aria-hidden>
-                        📦
-                      </span>
-                      <p>Orders</p>
-                    </Link>
-                    <Link href="/catalog" className="menu-card">
-                      <span className="menu-card-icon" aria-hidden>
-                        📚
-                      </span>
-                      <p>Catalog</p>
-                    </Link>
-                    <Link href="/help" className="menu-card">
-                      <span className="menu-card-icon" aria-hidden>
-                        ❓
-                      </span>
-                      <p>Help</p>
-                    </Link>
-                  </>
-                )
-              : (
+                  );
+                }
+
+                if (isAgentRole(agent)) {
+                  return (
+                    <>
+                      <Link href="/indent" className="menu-card">
+                        <span className="menu-card-icon" aria-hidden>📋</span>
+                        <p>Indent</p>
+                        <span>{stats.pending}</span>
+                      </Link>
+                      <Link href="/payments" className="menu-card">
+                        <span className="menu-card-icon" aria-hidden>💳</span>
+                        <p>Payments</p>
+                      </Link>
+                      <Link href="/invoice" className="menu-card">
+                        <span className="menu-card-icon" aria-hidden>🧾</span>
+                        <p>Invoice</p>
+                      </Link>
+                      <Link href="/orders" className="menu-card">
+                        <span className="menu-card-icon" aria-hidden>📦</span>
+                        <p>Orders</p>
+                      </Link>
+                      <Link href="/catalog" className="menu-card">
+                        <span className="menu-card-icon" aria-hidden>📚</span>
+                        <p>Catalog</p>
+                      </Link>
+                      <Link href="/help" className="menu-card">
+                        <span className="menu-card-icon" aria-hidden>❓</span>
+                        <p>Help</p>
+                      </Link>
+                    </>
+                  );
+                }
+
+                // 🏢 DEFAULT VIEW: For Sales Executives, Branch Managers, Accounts, etc.
+                return (
                   <>
                     <Link href="/routes" className="menu-card">
-                      <span className="menu-card-icon" aria-hidden>
-                        🗺️
-                      </span>
+                      <span className="menu-card-icon" aria-hidden>🗺️</span>
                       <p>Routes</p>
                     </Link>
                     <Link href="/agents" className="menu-card">
-                      <span className="menu-card-icon" aria-hidden>
-                        👥
-                      </span>
+                      <span className="menu-card-icon" aria-hidden>👥</span>
                       <p>Agents</p>
                     </Link>
                     <Link href="/indent" className="menu-card">
-                      <span className="menu-card-icon" aria-hidden>
-                        📋
-                      </span>
+                      <span className="menu-card-icon" aria-hidden>📋</span>
                       <p>Indents</p>
                       <span>{stats.pending}</span>
                     </Link>
                     <Link href="/payments" className="menu-card">
-                      <span className="menu-card-icon" aria-hidden>
-                        💳
-                      </span>
+                      <span className="menu-card-icon" aria-hidden>💳</span>
                       <p>Payments</p>
                     </Link>
                     <Link href="/invoice" className="menu-card">
-                      <span className="menu-card-icon" aria-hidden>
-                        🧾
-                      </span>
+                      <span className="menu-card-icon" aria-hidden>🧾</span>
                       <p>Invoice</p>
                     </Link>
                     <Link href="/catalog" className="menu-card">
-                      <span className="menu-card-icon" aria-hidden>
-                        📚
-                      </span>
+                      <span className="menu-card-icon" aria-hidden>📚</span>
                       <p>Catalog</p>
                     </Link>
-                    {(() => {
-                      const code = (agent?.role as { code?: string })?.code?.toUpperCase() || "";
-                      const isAccounts = code === 'AE' || code === 'AI';
-                      const isLogistics = code === 'DS' || code === 'SEC' || code === 'SUP';
-                      if (isAccounts || isLogistics) {
-                        return (
-                          <Link href="/delivery-challan" className="menu-card">
-                            <span className="menu-card-icon" aria-hidden>
-                              🚚
-                            </span>
-                            <p>Delivery Challan</p>
-                          </Link>
-                        );
-                      }
-                      return null;
-                    })()}
+                    {isAccounts && (
+                      <Link href="/delivery-challan" className="menu-card">
+                        <span className="menu-card-icon" aria-hidden>🚚</span>
+                        <p>Delivery Challan</p>
+                      </Link>
+                    )}
                   </>
-                )}
+                );
+              })()}
         </div>
 
         </main>

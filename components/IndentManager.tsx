@@ -473,15 +473,51 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
             </div>
             </div>
 
-            <div className="indent-actions" style={{ marginTop: '20px', borderTop: '1px solid #e5e7eb', paddingTop: '15px' }}>
-              <button 
-                className="confirm-btn" 
-                style={{ width: '100%', backgroundColor: '#0ea5e9' }}
-                onClick={() => window.print()}
-              >
-                🖨️ Print Challan
-              </button>
-            </div>
+            <div className="indent-actions d-print-none" style={{ marginTop: '20px', borderTop: '1px solid #e5e7eb', paddingTop: '15px', display: 'flex', gap: '10px' }}>
+               {selectedIndent.deliveryChallan.status === 'Draft' && (
+                 <button 
+                   className="confirm-btn" 
+                   style={{ flex: 1, backgroundColor: '#f59e0b' }}
+                   onClick={async () => {
+                     try {
+                        await updateDcStatusApi(selectedIndent.deliveryChallan._id, 'In Progress', (agent as any).userId || (agent as any).id);
+                        alert('Dispatch started');
+                        setShowDcDetails(false);
+                     } catch (err) {
+                        alert('Failed to start dispatch');
+                     }
+                   }}
+                 >
+                   🏃 Dispatch In-progress
+                 </button>
+               )}
+
+               {selectedIndent.deliveryChallan.status === 'In Progress' && (
+                 <button 
+                   className="confirm-btn" 
+                   style={{ flex: 1, backgroundColor: '#10b981' }}
+                   onClick={async () => {
+                     try {
+                        await updateDcStatusApi(selectedIndent.deliveryChallan._id, 'Security Check', (agent as any).userId || (agent as any).id);
+                        alert('Dispatch completed - moved to Security');
+                        setShowDcDetails(false);
+                     } catch (err) {
+                        alert('Failed to complete dispatch');
+                     }
+                   }}
+                 >
+                   ✅ Dispatch Completed
+                 </button>
+               )}
+
+               <button 
+                 className="confirm-btn" 
+                 style={{ flex: 1, backgroundColor: '#2563eb' }}
+                 onClick={() => window.print()}
+               >
+                 🖨️ Print DC
+               </button>
+             </div>
           </div>
         </div>
       )}

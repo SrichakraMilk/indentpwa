@@ -80,7 +80,7 @@ export interface DcRecord {
   plant: { name: string; code: string };
   items: DcItem[];
   dcDate: string;
-  status: 'Draft' | 'Printed' | 'Dispatched' | 'Delivered';
+  status: 'Draft' | 'In Progress' | 'Security Check' | 'Dispatched' | 'Delivered';
   remarks?: string;
 }
 
@@ -95,6 +95,19 @@ export async function fetchDcApi(params?: { date?: string; status?: string }): P
   if (!res.ok) throw new Error('Failed to fetch delivery challans');
   const data = await res.json();
   return data.dcs || [];
+}
+
+export async function updateDcStatusApi(dcId: string, status: string, userId: string, remarks: string = ''): Promise<any> {
+  const response = await fetch('/api/delivery-challans/update-status', {
+    method: 'POST',
+    headers: buildAuthHeaders(true),
+    body: JSON.stringify({ dcId, status, userId, remarks })
+  });
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Unable to update DC status: ${errorText || response.statusText}`);
+  }
+  return response.json();
 }
 
 export interface IndentItem {
