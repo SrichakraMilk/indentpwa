@@ -244,7 +244,8 @@ function normalizeIndentRecord(raw: unknown): IndentRecord {
     items,
     agent: r.agent,
     createdBy: r.createdBy,
-    deliveryChallan: r.deliveryChallan
+    deliveryChallan: r.deliveryChallan,
+    createdAt: typeof r.createdAt === 'string' ? r.createdAt : undefined
   };
 }
 
@@ -263,6 +264,7 @@ export interface IndentRecord {
   remarks?: string;
   items: IndentItem[];
   agent?: any;
+  createdAt?: string;
   createdBy?: any;
   deliveryChallan?: any;
 }

@@ -205,8 +205,8 @@ export default function DcManager({ status, refreshKey }: DcManagerProps) {
 
                {(() => {
                  const roleCode = (agent?.role as any)?.code?.toUpperCase() || "";
-                 const isLogisticsOrSec = ['DS', 'SEC', 'SECURITY', 'SUP'].includes(roleCode);
-                 if (isLogisticsOrSec) return null;
+                 const isRestricted = ['DS', 'SEC', 'SECURITY', 'SUP', 'AGENT', 'AGT'].includes(roleCode);
+                 if (isRestricted) return null;
                  
                  return (
                    <button className="confirm-btn" style={{ flex: 1, background: '#2563eb' }} onClick={() => window.print()}>

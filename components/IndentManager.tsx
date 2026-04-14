@@ -7,8 +7,6 @@ import {
   fetchIndentsApi,
   IndentRecord,
   IndentStatus,
-  updateIndentStatusApi,
-  rejectIndentApi,
   fetchDcApi,
   updateDcStatusApi,
   linkedEntityId
@@ -156,6 +154,11 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
 
         return s === (filterStatus || 'pending').toLowerCase();
       })
+      .sort((a, b) => {
+        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return dateB - dateA;
+      })
     : [];
 
   const listHeading = filterStatus 
@@ -176,6 +179,14 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
             {visibleIndents.map((indent) => {
               const currentIndentStep = (indent.currentStep || 'SE').toUpperCase();
               const isTurn = (indent.status || '').toLowerCase() === 'pending' && myActualRoles.includes(currentIndentStep);
+              const formattedDate = indent.createdAt ? new Date(indent.createdAt).toLocaleDateString('en-IN', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+              }) : '';
+
               return (
                 <li
                   key={indent._id}
@@ -183,10 +194,15 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
                   onClick={() => setSelectedIndent(indent)}
                 >
                   <div style={{ flex: 1 }}>
-                    <span className={`pill status-${(indent.status || '').toLowerCase()}`}>
-                      {indent.status || 'Pending'}
-                    </span>
-                    <h3>{indent.indentNumber}</h3>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <span className={`pill status-${(indent.status || '').toLowerCase()}`}>
+                        {indent.status || 'Pending'}
+                      </span>
+                      <span style={{ fontSize: '11px', color: '#6b7280', fontWeight: 500 }}>
+                        {formattedDate}
+                      </span>
+                    </div>
+                    <h3 style={{ marginTop: '4px' }}>{indent.indentNumber}</h3>
                     {(indent.status || '').toLowerCase() === 'pending' && indent.currentStep && (
                       <p style={{ fontSize: '13px', fontWeight: 600, color: '#0e7490', marginTop: '4px' }}>
                         {(() => {
@@ -222,8 +238,17 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
 
       {selectedIndent ? (
         <div className="indent-details-overlay" onClick={() => setSelectedIndent(null)}>
-          <div className="indent-details-card" onClick={(e) => e.stopPropagation()}>
-            <div className="indent-details-header">
+          <div 
+            className="indent-details-card" 
+            onClick={(e) => e.stopPropagation()}
+            style={{ 
+              maxHeight: '90vh', 
+              overflowY: 'auto', 
+              display: 'flex', 
+              flexDirection: 'column' 
+            }}
+          >
+            <div className="indent-details-header" style={{ position: 'sticky', top: 0, background: '#fff', zIndex: 10, paddingBottom: '10px' }}>
               <h3>{selectedIndent.indentNumber}</h3>
               <button
                 type="button"
@@ -540,8 +565,8 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
 
                {(() => {
                  const roleCode = (agent?.role as any)?.code?.toUpperCase() || "";
-                 const isLogisticsOrSec = ['DS', 'SEC', 'SECURITY', 'SUP'].includes(roleCode);
-                 if (isLogisticsOrSec) return null;
+                 const isRestricted = ['DS', 'SEC', 'SECURITY', 'SUP', 'AGENT', 'AGT'].includes(roleCode);
+                 if (isRestricted) return null;
                  
                  return (
                    <button 
