@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Category, createIndentApi, fetchProductCategoriesApi, fetchProductsApi, Product, resubmitIndentApi } from '@/lib/api';
+import { Category, createIndentApi, fetchProductCategoriesApi, fetchProductsApi, IndentItem, Product, resubmitIndentApi } from '@/lib/api';
 import { useAuth } from '@/components/AuthProvider';
 
 interface IndentRow {
@@ -14,12 +14,7 @@ interface IndentRow {
 
 export interface IndentEditData {
   id: string;
-  items: Array<{
-    category: any;
-    product: any;
-    quantity: number;
-    size?: string;
-  }>;
+  items: IndentItem[];
   remarks?: string;
 }
 
@@ -95,12 +90,12 @@ export default function NewIndentModal({
       setRemarks(initialData.remarks || '');
       const mappedRows: IndentRow[] = (initialData.items || []).map((item, idx) => ({
         id: `edit-${idx}-${Date.now()}`,
-        categoryId: item.category?._id || item.category || '',
-        category: item.category?.name || item.categoryName || 'Category',
-        productId: item.product?._id || item.product || '',
-        product: item.product?.name || item.productName || 'Product',
+        categoryId: item.categoryId || '',
+        category: item.categoryName || 'Category',
+        productId: item.productId || '',
+        product: item.productName || 'Product',
         size: item.size || '',
-        qty: item.quantity ?? (item as any).qty ?? 0
+        qty: item.quantity ?? item.qty ?? 0
       }));
       setRows(mappedRows);
     } else {
