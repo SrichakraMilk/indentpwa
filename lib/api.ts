@@ -61,7 +61,41 @@ const USERS_AGENTS_ENDPOINT = '/api/users/agents';
 /** Only categories with categoryType "Products" — proxied to upstream /api/categories/products */
 const PRODUCT_CATEGORIES_ENDPOINT = '/api/categories/products';
 const PRODUCTS_ENDPOINT = '/api/products';
+const DC_ENDPOINT = '/api/delivery-challans';
 const AUTH_STORAGE_KEY = 'indent-pwa-auth';
+
+export interface DcItem {
+  category: { name: string; code?: string };
+  product: { name: string; sku: string };
+  quantity: number;
+  size?: string;
+}
+
+export interface DcRecord {
+  _id: string;
+  dcNumber: string;
+  indent: { indentNumber: string; indentDate: string };
+  agent: { fname: string; lname: string; userid: string };
+  route: { name: string; code: string };
+  plant: { name: string; code: string };
+  items: DcItem[];
+  dcDate: string;
+  status: 'Draft' | 'Printed' | 'Dispatched' | 'Delivered';
+  remarks?: string;
+}
+
+export async function fetchDcApi(params?: { date?: string; status?: string }): Promise<DcRecord[]> {
+  const urlParams = new URLSearchParams();
+  if (params?.date) urlParams.append('date', params.date);
+  if (params?.status) urlParams.append('status', params.status);
+
+  const res = await fetch(`${DC_ENDPOINT}?${urlParams.toString()}`, {
+    headers: { 'Authorization': `Bearer ${getAuthToken()}` }
+  });
+  if (!res.ok) throw new Error('Failed to fetch delivery challans');
+  const data = await res.json();
+  return data.dcs || [];
+}
 
 export interface IndentItem {
   categoryId?: string;

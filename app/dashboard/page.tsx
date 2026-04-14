@@ -246,6 +246,21 @@ export default function DashboardPage() {
                       </span>
                       <p>Catalog</p>
                     </Link>
+                    {(() => {
+                      const code = (agent?.role as { code?: string })?.code?.toUpperCase() || "";
+                      const isAccounts = code === 'AE' || code === 'AI';
+                      if (isAccounts) {
+                        return (
+                          <Link href="/delivery-challan" className="menu-card">
+                            <span className="menu-card-icon" aria-hidden>
+                              🚚
+                            </span>
+                            <p>Delivery Challan</p>
+                          </Link>
+                        );
+                      }
+                      return null;
+                    })()}
                   </>
                 )}
         </div>
