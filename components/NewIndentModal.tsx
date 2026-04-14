@@ -35,7 +35,8 @@ const products: Product[] = [
 export default function NewIndentModal({
   open,
   onClose,
-  onCreated
+  onCreated,
+  initialData
 }: {
   open: boolean;
   onClose: () => void;
@@ -88,31 +89,34 @@ export default function NewIndentModal({
   }, [open]);
 
   useEffect(() => {
-    if (open && initialData) {
+    if (!open) return;
+
+    if (initialData) {
       setRemarks(initialData.remarks || '');
-      const mappedRows: IndentRow[] = initialData.items.map((item, idx) => ({
-        id: String(idx),
-        categoryId: item.category?._id || item.category,
-        category: item.category?.name || 'Category',
-        productId: item.product?._id || item.product,
-        product: item.product?.name || 'Product',
+      const mappedRows: IndentRow[] = (initialData.items || []).map((item, idx) => ({
+        id: `edit-${idx}-${Date.now()}`,
+        categoryId: item.category?._id || item.category || '',
+        category: item.category?.name || item.categoryName || 'Category',
+        productId: item.product?._id || item.product || '',
+        product: item.product?.name || item.productName || 'Product',
         size: item.size || '',
-        qty: item.quantity
+        qty: item.quantity ?? (item as any).qty ?? 0
       }));
       setRows(mappedRows);
-    } else if (open) {
+    } else {
       setRows([]);
       setRemarks('');
       setSelectedCategory('');
       setSelectedProduct('');
       setSelectedSize('');
     }
-  }, [open, initialData]);
+  }, [open, initialData, setRemarks, setRows, setSelectedCategory, setSelectedProduct, setSelectedSize]);
 
-  const filteredProducts = allProducts.filter((p) => p.categoryId === selectedCategory);
-  const uniqueProductNames = Array.from(new Set(filteredProducts.map((p) => p.name))).sort((a, b) =>
-    a.localeCompare(b, undefined, { sensitivity: 'base' })
-  );
+  const filteredProducts = (allProducts || []).filter((p) => p && p.categoryId === selectedCategory);
+  const uniqueProductNames = Array.from(
+    new Set(filteredProducts.map((p) => (p.name || '').trim()).filter(Boolean))
+  ).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+
   const sizeOptions = Array.from(
     new Set(
       filteredProducts
@@ -173,6 +177,13 @@ export default function NewIndentModal({
         }
         return undefined;
       };
+
+      const items = rows.map((row) => ({
+        category: row.categoryId,
+        product: row.productId,
+        quantity: row.qty,
+        size: row.size.trim() || undefined
+      }));
 
       if (initialData) {
         await resubmitIndentApi(initialData.id, items, remarks || 'Resubmitted', token);

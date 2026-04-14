@@ -332,7 +332,6 @@ export async function login(identifier: string, password: string): Promise<Login
   };
   
   try {
-    console.log('[Login] Sending to', url, 'with payload:', payload);
     
     const response = await fetch(url, {
       method: 'POST',
@@ -344,7 +343,7 @@ export async function login(identifier: string, password: string): Promise<Login
     });
 
     const responseText = await response.text();
-    console.log('[Login] Response status:', response.status, 'body:', responseText);
+    
 
     if (!response.ok) {
       console.error(`[Login] ${response.status} at ${url}:`, responseText);
