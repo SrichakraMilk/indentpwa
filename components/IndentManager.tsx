@@ -320,6 +320,7 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
                       <span>
                         {item.productName || item.productId || 'Unknown product'}
                         {item.size ? ` · ${item.size}` : ''}
+                        {item.unitName ? ` · ${item.unitName}` : ''}
                       </span>
                       <span>{qty}</span>
                     </li>
@@ -489,7 +490,11 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
             <ul className="indent-details-items" style={{ maxHeight: '200px', overflowY: 'auto' }}>
               {selectedIndent.deliveryChallan.items?.map((item: any, idx: number) => (
                 <li key={idx}>
-                  <span>{item.product?.name || 'Product'} {item.size ? `(${item.size})` : ''}</span>
+                  <span>
+                    {item.product?.name || 'Product'} 
+                    {item.size ? ` · ${item.size}` : ''}
+                    {item.unit?.name ? ` · ${item.unit.name}` : ''}
+                  </span>
                   <span>{item.quantity}</span>
                 </li>
               ))}

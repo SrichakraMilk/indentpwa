@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Category, createIndentApi, fetchProductCategoriesApi, fetchProductsApi, IndentItem, Product, resubmitIndentApi } from '@/lib/api';
+import { Category, createIndentApi, fetchProductCategoriesApi, fetchProductsApi, fetchUnitsApi, IndentItem, Product, resubmitIndentApi, Unit } from '@/lib/api';
 import { useAuth } from '@/components/AuthProvider';
 
 interface IndentRow {
@@ -10,6 +10,8 @@ interface IndentRow {
   product: string;
   size: string;
   qty: number;
+  unitId: string;
+  unitName: string;
 }
 
 export interface IndentEditData {
@@ -42,13 +44,15 @@ export default function NewIndentModal({
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [units, setUnits] = useState<Unit[]>([]);
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedProduct, setSelectedProduct] = useState('');
   const [selectedSize, setSelectedSize] = useState('');
+  const [selectedUnit, setSelectedUnit] = useState('');
   const [qty, setQty] = useState('');
   const [rows, setRows] = useState<IndentRow[]>([]);
   const [remarks, setRemarks] = useState('');
-  const [error, setError] = useState<{cat?: boolean; prod?: boolean; size?: boolean; qty?: boolean}>({});
+  const [error, setError] = useState<{cat?: boolean; prod?: boolean; size?: boolean; qty?: boolean; unit?: boolean}>({});
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -56,11 +60,16 @@ export default function NewIndentModal({
 
     let cancelled = false;
     async function load() {
-      const settled = await Promise.allSettled([fetchProductCategoriesApi(), fetchProductsApi()]);
+      const settled = await Promise.allSettled([
+        fetchProductCategoriesApi(),
+        fetchProductsApi(),
+        fetchUnitsApi()
+      ]);
       if (cancelled) return;
 
       const catResult = settled[0];
       const prodResult = settled[1];
+      const unitResult = settled[2];
 
       if (catResult.status === 'fulfilled') {
         setCategories(catResult.value);
@@ -75,6 +84,13 @@ export default function NewIndentModal({
       } else {
         console.error('Products fetch failed:', prodResult.reason);
         setAllProducts(products);
+      }
+
+      if (unitResult.status === 'fulfilled') {
+        setUnits(unitResult.value);
+      } else {
+        console.error('Units fetch failed:', unitResult.reason);
+        setUnits([]);
       }
     }
     load();
@@ -95,7 +111,9 @@ export default function NewIndentModal({
         productId: item.productId || '',
         product: item.productName || 'Product',
         size: item.size || '',
-        qty: item.quantity ?? item.qty ?? 0
+        qty: item.quantity ?? item.qty ?? 0,
+        unitId: item.unitId || '',
+        unitName: item.unitName || 'Unit'
       }));
       setRows(mappedRows);
     } else {
@@ -104,8 +122,9 @@ export default function NewIndentModal({
       setSelectedCategory('');
       setSelectedProduct('');
       setSelectedSize('');
+      setSelectedUnit('');
     }
-  }, [open, initialData, setRemarks, setRows, setSelectedCategory, setSelectedProduct, setSelectedSize]);
+  }, [open, initialData, setRemarks, setRows, setSelectedCategory, setSelectedProduct, setSelectedSize, setSelectedUnit]);
 
   const filteredProducts = (allProducts || []).filter((p) => p && p.categoryId === selectedCategory);
   const uniqueProductNames = Array.from(
@@ -127,10 +146,11 @@ export default function NewIndentModal({
       cat: !selectedCategory,
       prod: !selectedProduct,
       size: !selectedSize,
+      unit: !selectedUnit,
       qty: !qty || isNaN(Number(qty)) || Number(qty) <= 0,
     };
     setError(err);
-    if (err.cat || err.prod || err.size || err.qty) return;
+    if (err.cat || err.prod || err.size || err.unit || err.qty) return;
 
     const resolvedProduct = filteredProducts.find(
       (p) => p.name === selectedProduct && (p.size ?? '').trim() === selectedSize
@@ -147,11 +167,14 @@ export default function NewIndentModal({
         product: resolvedProduct.name,
         size: selectedSize,
         qty: Number(qty),
+        unitId: selectedUnit,
+        unitName: units.find(u => u._id === selectedUnit)?.name || ''
       },
     ]);
     setQty('');
     setSelectedProduct('');
     setSelectedSize('');
+    setSelectedUnit('');
     setError({});
   };
 
@@ -177,7 +200,8 @@ export default function NewIndentModal({
         category: row.categoryId,
         product: row.productId,
         quantity: row.qty,
-        size: row.size.trim() || undefined
+        size: row.size.trim() || undefined,
+        unit: row.unitId || undefined
       }));
 
       if (initialData) {
@@ -203,6 +227,7 @@ export default function NewIndentModal({
       setSelectedCategory('');
       setSelectedProduct('');
       setSelectedSize('');
+      setSelectedUnit('');
       onCreated?.();
       onClose();
     } catch (e) {
@@ -275,6 +300,18 @@ export default function NewIndentModal({
           </label>
 
           <label className="indent-modal-label">
+            Unit
+            <select
+              value={selectedUnit}
+              onChange={e => { setSelectedUnit(e.target.value); setError(err => ({...err, unit: false})); }}
+              className={`indent-modal-control ${error.unit ? 'indent-modal-control-error' : ''}`}
+            >
+              <option value="">Select unit</option>
+              {units.map(u => <option key={u._id} value={u._id}>{u.name}</option>)}
+            </select>
+          </label>
+
+          <label className="indent-modal-label">
             Qty
             <input
               type="number"
@@ -315,6 +352,7 @@ export default function NewIndentModal({
                 <th className="indent-modal-cell-left">Category</th>
                 <th className="indent-modal-cell-left">Product</th>
                 <th className="indent-modal-cell-left">Size</th>
+                <th className="indent-modal-cell-left">Unit</th>
                 <th className="indent-modal-cell-right">Qty</th>
                 <th></th>
               </tr>
@@ -325,6 +363,7 @@ export default function NewIndentModal({
                   <td className="indent-modal-cell-left">{row.category}</td>
                   <td className="indent-modal-cell-left">{row.product}</td>
                   <td className="indent-modal-cell-left">{row.size}</td>
+                  <td className="indent-modal-cell-left">{row.unitName}</td>
                   <td className="indent-modal-cell-right">{row.qty}</td>
                   <td className="indent-modal-cell-left">
                     <button

@@ -61,6 +61,7 @@ const USERS_AGENTS_ENDPOINT = '/api/users/agents';
 /** Only categories with categoryType "Products" — proxied to upstream /api/categories/products */
 const PRODUCT_CATEGORIES_ENDPOINT = '/api/categories/products';
 const PRODUCTS_ENDPOINT = '/api/products';
+const UNITS_ENDPOINT = '/api/units';
 const DC_ENDPOINT = '/api/delivery-challans';
 const AUTH_STORAGE_KEY = 'indent-pwa-auth';
 
@@ -69,6 +70,7 @@ export interface DcItem {
   product: { name: string; sku: string };
   quantity: number;
   size?: string;
+  unit?: { name: string; code?: string };
 }
 
 export interface DcRecord {
@@ -119,6 +121,8 @@ export interface IndentItem {
   size?: string;
   qty?: number;
   quantity?: number;
+  unitId?: string;
+  unitName?: string;
 }
 
 function mongoIdString(v: unknown): string | undefined {
@@ -182,6 +186,22 @@ function categoryRefToLabelAndId(ref: unknown): { id?: string; label?: string } 
   return { id: id || undefined, label };
 }
 
+function unitRefToLabelAndId(ref: unknown): { id?: string; label?: string } {
+  if (ref == null) return {};
+  if (typeof ref === 'string') {
+    const t = ref.trim();
+    return t ? { id: t } : {};
+  }
+  if (typeof ref !== 'object' || Array.isArray(ref)) return {};
+  const o = ref as Record<string, unknown>;
+  const id = mongoIdString(o._id) ?? mongoIdString(ref);
+  const label =
+    (typeof o.name === 'string' && o.name.trim()) ||
+    (typeof o.code === 'string' && o.code.trim()) ||
+    undefined;
+  return { id: id || undefined, label };
+}
+
 /** Backend may return populated refs (`product`, `category`) instead of flat names. */
 function normalizeIndentItem(raw: unknown): IndentItem {
   if (!raw || typeof raw !== 'object') {
@@ -224,7 +244,9 @@ function normalizeIndentItem(raw: unknown): IndentItem {
     productName,
     size,
     qty,
-    quantity
+    quantity,
+    unitId: (typeof item.unitId === 'string' && item.unitId.trim()) || unitRefToLabelAndId(item.unit).id || undefined,
+    unitName: (typeof item.unitName === 'string' && item.unitName.trim()) || unitRefToLabelAndId(item.unit).label || undefined
   };
 }
 
@@ -279,6 +301,12 @@ export interface Product {
   name: string;
   categoryId: string;
   size: string;
+}
+
+export interface Unit {
+  _id: string;
+  name: string;
+  code: string;
 }
 
 /** Active sales route row (from upstream `GET /api/routes` → `{ routes }`). */
@@ -590,6 +618,7 @@ export interface CreateIndentRequest {
     /** Plantautomation `Indent` model uses `quantity` (not `qty`). */
     quantity: number;
     size?: string;
+    unit?: string;
   }>;
   plant?: string;
   department?: string;
@@ -839,6 +868,25 @@ export async function fetchProductsApi(): Promise<Product[]> {
   }, [] as Product[]);
 
   return normalized.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+}
+
+export async function fetchUnitsApi(): Promise<Unit[]> {
+  const response = await fetch(UNITS_ENDPOINT, { cache: 'no-store' });
+  if (!response.ok) {
+    return [];
+  }
+  const data = await response.json();
+  const rawUnits: any[] = Array.isArray(data)
+    ? data
+    : data && typeof data === 'object' && Array.isArray(data.units)
+      ? data.units
+      : [];
+
+  return rawUnits.map(u => ({
+    _id: u._id || u.id,
+    name: u.name || '',
+    code: u.code || ''
+  })).sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
 }
 
 export async function fetchDashboard(): Promise<DashboardStats> {
