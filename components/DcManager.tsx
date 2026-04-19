@@ -141,66 +141,68 @@ export default function DcManager({ status, refreshKey }: DcManagerProps) {
             </div>
 
             <div className="indent-actions d-print-none" style={{ marginTop: '20px', borderTop: '1px solid #e5e7eb', paddingTop: '15px', display: 'flex', gap: '10px' }}>
-               {selectedDc.status === 'Draft' && (
-                 <button 
-                   className="confirm-btn" 
-                   style={{ flex: 1, background: '#f59e0b' }} 
-                   onClick={async () => {
-                     try {
-                        await updateDcStatusApi(selectedDc._id, 'In Progress', (agent as any).userId || (agent as any).id);
-                        alert('Dispatch started');
-                        setSelectedDc(null);
-                        // Refresh logic if needed
-                     } catch (err) {
-                        alert('Failed to start dispatch');
-                     }
-                   }}
-                 >
-                   🏃 Dispatch In-progress
-                 </button>
-               )}
-
-               {selectedDc.status === 'In Progress' && (
-                 <button 
-                   className="confirm-btn" 
-                   style={{ flex: 1, background: '#10b981' }} 
-                   onClick={async () => {
-                     try {
-                        await updateDcStatusApi(selectedDc._id, 'Security Check', (agent as any).userId || (agent as any).id);
-                        alert('Dispatch completed - moved to Security');
-                        setSelectedDc(null);
-                     } catch (err) {
-                        alert('Failed to complete dispatch');
-                     }
-                   }}
-                 >
-                   ✅ Dispatch Completed
-                 </button>
-               )}
-
                {(() => {
                  const roleCode = (agent?.role as any)?.code?.toUpperCase() || "";
+                 const isDS = roleCode === 'DS';
                  const isSec = roleCode === 'SEC' || roleCode === 'SECURITY';
-                 if (isSec && selectedDc.status === 'Security Check') {
-                   return (
-                    <button 
-                      className="confirm-btn" 
-                      style={{ flex: 1, background: '#8b5cf6' }} 
-                      onClick={async () => {
-                        try {
-                           await updateDcStatusApi(selectedDc._id, 'Approved', (agent as any).userId || (agent as any).id);
-                           alert('Security Cleared - Indent Fulfilled');
-                           setSelectedDc(null);
-                        } catch (err) {
-                           alert('Failed to clear security');
-                        }
-                      }}
-                    >
-                      ✅ Security Checked
-                    </button>
-                   );
-                 }
-                 return null;
+
+                 return (
+                   <>
+                    {isDS && selectedDc.status === 'Draft' && (
+                      <button 
+                        className="confirm-btn" 
+                        style={{ flex: 1, background: '#f59e0b' }} 
+                        onClick={async () => {
+                          try {
+                              await updateDcStatusApi(selectedDc._id, 'In Progress', (agent as any).userId || (agent as any).id);
+                              alert('Dispatch started');
+                              setSelectedDc(null);
+                          } catch (err) {
+                              alert('Failed to start dispatch');
+                          }
+                        }}
+                      >
+                        🏃 Dispatch In-progress
+                      </button>
+                    )}
+
+                    {isDS && selectedDc.status === 'In Progress' && (
+                      <button 
+                        className="confirm-btn" 
+                        style={{ flex: 1, background: '#10b981' }} 
+                        onClick={async () => {
+                          try {
+                              await updateDcStatusApi(selectedDc._id, 'Security Check', (agent as any).userId || (agent as any).id);
+                              alert('Dispatch completed - moved to Security');
+                              setSelectedDc(null);
+                          } catch (err) {
+                              alert('Failed to complete dispatch');
+                          }
+                        }}
+                      >
+                        ✅ Dispatch Completed
+                      </button>
+                    )}
+
+                    {isSec && selectedDc.status === 'Security Check' && (
+                      <button 
+                        className="confirm-btn" 
+                        style={{ flex: 1, background: '#8b5cf6' }} 
+                        onClick={async () => {
+                          try {
+                              await updateDcStatusApi(selectedDc._id, 'Approved', (agent as any).userId || (agent as any).id);
+                              alert('Security Cleared - Indent Fulfilled');
+                              setSelectedDc(null);
+                          } catch (err) {
+                              alert('Failed to clear security');
+                          }
+                        }}
+                      >
+                        ✅ Security Checked
+                      </button>
+                    )}
+                   </>
+                 );
                })()}
 
                {(() => {
