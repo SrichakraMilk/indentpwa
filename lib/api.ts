@@ -714,9 +714,9 @@ function normalizeSalesRoute(raw: unknown): SalesRouteRow | null {
     description: description || undefined,
     plantLabel: refPlaceLabel(o.plant),
     branchLabel: refPlaceLabel(o.branch),
-    executiveLabel: refPersonLabel(o.executive),
-    branchManagerLabel: refPersonLabel(o.branchManager),
-    areaManagerLabel: refPersonLabel(o.areaManager)
+    executiveLabel: refPersonLabel(o.executive) ?? refPersonLabel((o.branch as any)?.executive),
+    branchManagerLabel: refPersonLabel(o.branchManager) ?? refPersonLabel((o.branch as any)?.branchManager),
+    areaManagerLabel: refPersonLabel(o.areaManager) ?? refPersonLabel((o.branch as any)?.areaManager)
   };
 }
 
