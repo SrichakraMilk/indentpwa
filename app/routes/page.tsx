@@ -56,12 +56,18 @@ export default function RoutesPage() {
   }, [initializing, load]);
 
   const handleDownloadApprovedIndents = async () => {
-    if (!token || !agent?.route?.id) return;
+    const routeId = agent?.route?.id || (agent?.route as any)?._id;
+    if (!token || !routeId) {
+      console.warn('Download blocked: Missing token or route ID:', { token: !!token, routeId });
+      alert('Your route information is missing. Please try logging out and in again.');
+      return;
+    }
     setDownloading(true);
     try {
       const today = new Date().toISOString().split('T')[0];
+      console.log('Fetching indents for download:', { routeId, today, status: 'Approved' });
       const indents = await fetchIndentsApi(
-        { status: 'Approved', date: today, route: agent.route.id },
+        { status: 'Approved', date: today, route: routeId },
         token
       );
 
@@ -120,22 +126,43 @@ export default function RoutesPage() {
         headStyles: { fillColor: [37, 99, 235] }
       });
 
-      // Agent Breakdown
-      const finalY = (doc as any).lastAutoTable.finalY + 15;
+      // Detailed Indents per Agent
+      let currentY = (doc as any).lastAutoTable.finalY + 15;
       doc.setFontSize(14);
-      doc.text('Agent Breakdown', 14, finalY);
+      doc.text('Detailed Indents per Agent', 14, currentY);
+      currentY += 10;
 
-      const agentData = Object.values(agentDetails).map(a => [
-        a.name,
-        a.indents.join(', ')
-      ]);
+      indents.forEach((indent, index) => {
+        const agentName = `${indent.agent?.fname ?? ''} ${indent.agent?.lname ?? ''}`.trim() || 'Unknown Agent';
+        
+        // Check if we need a new page before drawing the header
+        if (currentY > 260) {
+          doc.addPage();
+          currentY = 20;
+        }
 
-      autoTable(doc, {
-        startY: finalY + 5,
-        head: [['Agent Name', 'Approved Indents']],
-        body: agentData,
-        theme: 'grid',
-        headStyles: { fillColor: [107, 114, 128] }
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`${index + 1}. Agent: ${agentName} (Indent: ${indent.indentNumber})`, 14, currentY);
+        doc.setFont('helvetica', 'normal');
+        
+        const itemRows = indent.items.map(item => [
+          item.productName || '—',
+          (item.quantity || 0).toString(),
+          item.unitName || '—'
+        ]);
+
+        autoTable(doc, {
+          startY: currentY + 5,
+          head: [['Product', 'Qty', 'Unit']],
+          body: itemRows,
+          theme: 'grid',
+          headStyles: { fillColor: [75, 85, 99] },
+          margin: { left: 20 },
+          styles: { fontSize: 9 }
+        });
+
+        currentY = (doc as any).lastAutoTable.finalY + 15;
       });
 
       doc.save(`Approved_Indents_${agent.route.code}_${today}.pdf`);

@@ -503,10 +503,22 @@ function normalizeAgentProfile(data: any): { name: string; email: string; agent?
           balance: agent.balance,
           address: agent.address,
           isActive: agent.isActive,
-          role: agent.role,
-          plant: agent.plant,
-          branch: agent.branch,
-          route: agent.route,
+          role: agent.role ? {
+            ...agent.role,
+            id: mongoIdString(agent.role) || agent.role.id
+          } : undefined,
+          plant: agent.plant ? {
+            ...agent.plant,
+            id: mongoIdString(agent.plant) || agent.plant.id || agent.plant._id
+          } : undefined,
+          branch: agent.branch ? {
+            ...agent.branch,
+            id: mongoIdString(agent.branch) || agent.branch.id || agent.branch._id
+          } : undefined,
+          route: agent.route ? {
+            ...agent.route,
+            id: mongoIdString(agent.route) || agent.route.id || agent.route._id
+          } : undefined,
           department: agent.department,
           executive: agent.executive,
           branchManager: agent.branchManager,
