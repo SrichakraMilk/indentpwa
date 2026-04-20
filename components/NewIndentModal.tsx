@@ -315,7 +315,8 @@ export default function NewIndentModal({
             Qty
             <input
               type="number"
-              min="1"
+              min="0"
+              step="any"
               value={qty}
               onChange={e => { setQty(e.target.value); setError(err => ({...err, qty: false})); }}
               className={`indent-modal-control ${error.qty ? 'indent-modal-control-error' : ''}`}
