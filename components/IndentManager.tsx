@@ -94,6 +94,7 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
   const isGM = userRoleCode === 'GM' || userRoleCode?.includes('GENERAL MANAGER');
   const isAE = userRoleCode === 'AE' || userRoleCode?.includes('ACCOUNTS EXECUTIVE');
   const isAI = userRoleCode === 'AI' || userRoleCode?.includes('ACCOUNTS INCHARGE');
+  const isDS = userRoleCode === 'DS' || userRoleCode?.includes('DISPATCH SUPERVISOR');
   
   const myActualRoles = [userRoleCode || ''];
   if (isBM) { myActualRoles.push('BM', 'ABM'); }
@@ -507,7 +508,7 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
             </div>
 
             <div className="indent-actions d-print-none" style={{ marginTop: '20px', borderTop: '1px solid #e5e7eb', paddingTop: '15px', display: 'flex', gap: '10px' }}>
-               {selectedIndent.deliveryChallan.status === 'Draft' && (
+               {isDS && selectedIndent.deliveryChallan.status === 'Draft' && (
                  <button 
                    className="confirm-btn" 
                    style={{ flex: 1, backgroundColor: '#f59e0b' }}
@@ -525,7 +526,7 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
                  </button>
                )}
 
-               {selectedIndent.deliveryChallan.status === 'In Progress' && (
+               {isDS && selectedIndent.deliveryChallan.status === 'In Progress' && (
                  <button 
                    className="confirm-btn" 
                    style={{ flex: 1, backgroundColor: '#10b981' }}
