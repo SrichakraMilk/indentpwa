@@ -573,8 +573,19 @@ export async function validateSessionOnBackend(token: string): Promise<CurrentAg
   };
 }
 
-export async function fetchIndentsApi(token?: string | null): Promise<IndentRecord[]> {
-  const response = await fetch(INDENTS_ENDPOINT, {
+export async function fetchIndentsApi(
+  filters?: { status?: string; date?: string; route?: string },
+  token?: string | null
+): Promise<IndentRecord[]> {
+  const params = new URLSearchParams();
+  if (filters?.status) params.set('status', filters.status);
+  if (filters?.date) params.set('date', filters.date);
+  if (filters?.route) params.set('route', filters.route);
+
+  const qs = params.toString();
+  const url = `${INDENTS_ENDPOINT}${qs ? `?${qs}` : ''}`;
+
+  const response = await fetch(url, {
     headers: buildAuthHeaders(false, token)
   });
   if (!response.ok) {
