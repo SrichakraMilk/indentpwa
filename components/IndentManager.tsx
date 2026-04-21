@@ -132,6 +132,19 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
         
         // Final ownership check: I can see it if it's mine, my branch, OR I am corporate
         const canView = isMyIndent || isMyBranch || isCorporate;
+
+        console.log("Diag Indent filter:", {
+           indentId: indent._id,
+           myIds,
+           targetAreaManager: linkedEntityId(indent.areaManager),
+           branchAreaManager: linkedEntityId(indent.branch?.areaManager),
+           isMyIndent,
+           userBranchId,
+           indentBranchId,
+           isMyBranch,
+           canView
+        });
+
         if (!canView) return false;
 
         const IApproved = indent.approvalLog?.some(log => 
