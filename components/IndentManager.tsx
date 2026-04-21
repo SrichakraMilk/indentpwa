@@ -118,7 +118,17 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
         if (filterStatus === 'pending') {
           if (s !== 'pending') return false;
           
-          const isMyTurn = myActualRoles.includes(currentStep);
+          const isMyTurnForRole = myActualRoles.includes(currentStep);
+          const userBranchId = String(linkedEntityId(agent?.branch) || '');
+          const indentBranchId = String(linkedEntityId(indent.branch) || '');
+          
+          let isMyTurn = isMyTurnForRole;
+          
+          // For branch-level supervisors (SE, BM, AM), turn only applies if branch matches
+          const isBranchSupervisor = ['SE', 'BM', 'ABM', 'AM'].some(r => myActualRoles.includes(r));
+          if (isBranchSupervisor && userBranchId && indentBranchId) {
+            isMyTurn = isMyTurnForRole && userBranchId === indentBranchId;
+          }
           
           const myIds = [agent?._id, agent?.id, agent?.userId].filter(Boolean).map(id => String(id));
           const targetAgentId = linkedEntityId(indent.agent);
