@@ -290,6 +290,7 @@ export interface IndentRecord {
   branchManager?: any;
   areaManager?: any;
   branch?: any;
+  plant?: any;
   createdAt?: string;
   createdBy?: any;
   deliveryChallan?: any;
