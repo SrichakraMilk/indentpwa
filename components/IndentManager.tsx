@@ -108,6 +108,29 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
         const s = (indent.status || '').toLowerCase();
         const currentStep = (indent.currentStep || 'SE').toUpperCase();
         
+        const myIds = [agent?._id, agent?.id, agent?.userId].filter(Boolean).map(id => String(id));
+        const targetAgentId = linkedEntityId(indent.agent);
+        const targetCreatorId = linkedEntityId(indent.createdBy);
+        
+        const isMyIndent = myIds.some(myId => 
+          myId === String(targetAgentId || '') || 
+          myId === String(targetCreatorId || '') ||
+          myId === String(linkedEntityId(indent.executive) || '') ||
+          myId === String(linkedEntityId(indent.branchManager) || '') ||
+          myId === String(linkedEntityId(indent.areaManager) || '')
+        );
+
+        const userBranchId = String(linkedEntityId(agent?.branch) || '');
+        const indentBranchId = String(linkedEntityId(indent.branch) || '');
+        const isMyBranch = !!userBranchId && userBranchId === indentBranchId;
+
+        // Corporate oversight: GM+, AE, AI usually see everything or use API filtering
+        const isCorporate = isGM || isAE || isAI || userRoleCode === 'ADMIN';
+        
+        // Final ownership check: I can see it if it's mine, my branch, OR I am corporate
+        const canView = isMyIndent || isMyBranch || isCorporate;
+        if (!canView) return false;
+
         const IApproved = indent.approvalLog?.some(log => 
           myActualRoles.includes((log.role || '').toUpperCase()) && log.status === 'Approved'
         );
@@ -119,9 +142,6 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
           if (s !== 'pending') return false;
           
           const isMyTurnForRole = myActualRoles.includes(currentStep);
-          const userBranchId = String(linkedEntityId(agent?.branch) || '');
-          const indentBranchId = String(linkedEntityId(indent.branch) || '');
-          
           let isMyTurn = isMyTurnForRole;
           
           // For branch-level supervisors (SE, BM, AM), turn only applies if branch matches
@@ -129,18 +149,6 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
           if (isBranchSupervisor && userBranchId && indentBranchId) {
             isMyTurn = isMyTurnForRole && userBranchId === indentBranchId;
           }
-          
-          const myIds = [agent?._id, agent?.id, agent?.userId].filter(Boolean).map(id => String(id));
-          const targetAgentId = linkedEntityId(indent.agent);
-          const targetCreatorId = linkedEntityId(indent.createdBy);
-          
-          const isMyIndent = myIds.some(myId => 
-            myId === String(targetAgentId || '') || 
-            myId === String(targetCreatorId || '') ||
-            myId === String(linkedEntityId(indent.executive) || '') ||
-            myId === String(linkedEntityId(indent.branchManager) || '') ||
-            myId === String(linkedEntityId(indent.areaManager) || '')
-          );
 
           const isAgent = userRoleCode === 'AGENT' || userRoleCode === 'AGT';
           if (isAgent && isMyIndent) return true;
@@ -150,12 +158,9 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
 
         if (filterStatus === 'approved') {
           if (s === 'approved') return true;
-          
           const isAgent = userRoleCode === 'AGENT' || userRoleCode === 'AGT';
-          if (isAgent) return false;
-
+          if (isAgent) return isMyIndent && s === 'approved';
           if (s === 'pending' && IApproved) return true;
-          
           return false;
         }
 
