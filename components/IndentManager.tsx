@@ -148,19 +148,16 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
         if (filterStatus === 'pending') {
           if (s !== 'pending') return false;
           
-          const isMyTurnForRole = myActualRoles.includes(currentStep);
-          let isMyTurn = isMyTurnForRole;
+          // If we passed the `canView` check above, then this indent belongs
+          // either to their explicitly assigned pool, their branch, or their plant (for AMs).
+          // We should show ALL pending indents in their jurisdiction, not just the ones
+          // where it's explicitly their turn, so they have full oversight.
           
-          // For branch-level supervisors (SE, BM, AM), turn only applies if branch matches
-          const isBranchSupervisor = ['SE', 'BM', 'ABM', 'AM'].some(r => myActualRoles.includes(r));
-          if (isBranchSupervisor && userBranchId && indentBranchId) {
-            isMyTurn = isMyTurnForRole && userBranchId === indentBranchId;
-          }
-
           const isAgent = userRoleCode === 'AGENT' || userRoleCode === 'AGT';
-          if (isAgent && isMyIndent) return true;
+          if (isAgent) return isMyIndent;
 
-          return isMyTurn || isMyIndent;
+          // Supervisors/corporate see all pending indents in their jurisdiction
+          return true;
         }
 
         if (filterStatus === 'approved') {
