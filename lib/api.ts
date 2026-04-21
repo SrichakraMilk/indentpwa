@@ -286,6 +286,9 @@ export interface IndentRecord {
   remarks?: string;
   items: IndentItem[];
   agent?: any;
+  executive?: any;
+  branchManager?: any;
+  areaManager?: any;
   createdAt?: string;
   createdBy?: any;
   deliveryChallan?: any;
