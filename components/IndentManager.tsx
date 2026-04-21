@@ -127,23 +127,20 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
         const indentBranchId = String(linkedEntityId(indent.branch) || '');
         const isMyBranch = !!userBranchId && userBranchId === indentBranchId;
 
+        const userPlantId = String(linkedEntityId(agent?.plant) || '');
+        const indentPlantId = String(linkedEntityId(indent.plant) || '');
+        const isMyPlant = !!userPlantId && userPlantId === indentPlantId;
+
+        // Is it currently this user's turn acting as a supervisor?
+        const isMyTurnForRole = myActualRoles.includes(currentStep);
+        const myJurisdiction = (isAM && isMyPlant) || isMyBranch || isMyIndent;
+        const isMyTurnActive = (s === 'pending') && isMyTurnForRole && myJurisdiction;
+
         // Corporate oversight: GM+, AE, AI usually see everything or use API filtering
         const isCorporate = isGM || isAE || isAI || userRoleCode === 'ADMIN';
         
-        // Final ownership check: I can see it if it's mine, my branch, OR I am corporate
-        const canView = isMyIndent || isMyBranch || isCorporate;
-
-        console.log("Diag Indent filter:", {
-           indentId: indent._id,
-           myIds,
-           targetAreaManager: linkedEntityId(indent.areaManager),
-           branchAreaManager: linkedEntityId(indent.branch?.areaManager),
-           isMyIndent,
-           userBranchId,
-           indentBranchId,
-           isMyBranch,
-           canView
-        });
+        // Final ownership check: See it if it's mine, my branch, my plant (for AM), it's my turn, or I am corporate
+        const canView = isMyIndent || isMyBranch || (isAM && isMyPlant) || isMyTurnActive || isCorporate;
 
         if (!canView) return false;
 
