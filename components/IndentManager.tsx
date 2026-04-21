@@ -117,7 +117,10 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
           myId === String(targetCreatorId || '') ||
           myId === String(linkedEntityId(indent.executive) || '') ||
           myId === String(linkedEntityId(indent.branchManager) || '') ||
-          myId === String(linkedEntityId(indent.areaManager) || '')
+          myId === String(linkedEntityId(indent.areaManager) || '') ||
+          myId === String(linkedEntityId(indent.branch?.executive) || '') ||
+          myId === String(linkedEntityId(indent.branch?.branchManager) || '') ||
+          myId === String(linkedEntityId(indent.branch?.areaManager) || '')
         );
 
         const userBranchId = String(linkedEntityId(agent?.branch) || '');
