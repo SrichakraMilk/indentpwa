@@ -289,6 +289,7 @@ export interface IndentRecord {
   executive?: any;
   branchManager?: any;
   areaManager?: any;
+  branch?: any;
   createdAt?: string;
   createdBy?: any;
   deliveryChallan?: any;
