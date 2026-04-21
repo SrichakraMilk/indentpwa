@@ -165,7 +165,7 @@ export default function RoutesPage() {
         currentY = (doc as any).lastAutoTable.finalY + 15;
       });
 
-      doc.save(`Approved_Indents_${agent.route.code}_${today}.pdf`);
+      doc.save(`Approved_Indents_${agent?.route?.code || 'Route'}_${today}.pdf`);
     } catch (e) {
       console.error(e);
       alert('Failed to generate report.');
