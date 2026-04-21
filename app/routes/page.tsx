@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import ProtectedPage from '@/components/ProtectedPage';
 import Header from '@/components/Header';
@@ -174,6 +174,35 @@ export default function RoutesPage() {
     }
   };
 
+  const [expandedRouteId, setExpandedRouteId] = useState<string | null>(null);
+  const [routeIndents, setRouteIndents] = useState<Record<string, IndentRecord[]>>({});
+  const [loadingIndents, setLoadingIndents] = useState<Set<string>>(new Set());
+
+  const toggleRoute = async (routeId: string) => {
+    if (expandedRouteId === routeId) {
+      setExpandedRouteId(null);
+      return;
+    }
+
+    setExpandedRouteId(routeId);
+
+    if (!routeIndents[routeId]) {
+      setLoadingIndents(prev => new Set(prev).add(routeId));
+      try {
+        const indents = await fetchIndentsApi({ route: routeId }, token);
+        setRouteIndents(prev => ({ ...prev, [routeId]: indents }));
+      } catch (err) {
+        console.error('Failed to fetch indents for route:', routeId, err);
+      } finally {
+        setLoadingIndents(prev => {
+          const next = new Set(prev);
+          next.delete(routeId);
+          return next;
+        });
+      }
+    }
+  };
+
   const isSalesExecutive = agent?.role?.name?.toLowerCase().includes('sales executive') || agent?.role?.code === 'SE';
 
   return (
@@ -184,8 +213,11 @@ export default function RoutesPage() {
           <p className="module-back-nav">
             <Link href="/dashboard">← Dashboard</Link>
           </p>
-          <div className="flex justify-between items-center">
-            <h1 className="page-title">Routes</h1>
+          <div className="flex justify-between items-center" style={{ marginBottom: '1rem' }}>
+            <div>
+              <h1 className="page-title">Routes</h1>
+              <p className="module-description" style={{ marginTop: '4px' }}>{filterSummary}</p>
+            </div>
             {isSalesExecutive && (
               <button 
                 onClick={handleDownloadApprovedIndents}
@@ -193,22 +225,25 @@ export default function RoutesPage() {
                 className="btn btn--primary flex items-center gap-2"
                 style={{ padding: '8px 16px', borderRadius: '8px', fontSize: '14px', fontWeight: 'bold' }}
               >
-                {downloading ? '⌛ Generating...' : '📥 Download Route Indents'}
+                {downloading ? '⌛ Generating...' : '📥 Download Approved Report'}
               </button>
             )}
           </div>
-          <p className="module-description">{filterSummary}</p>
 
           {error ? (
-            <div className="routes-banner routes-banner--error" role="alert">
+            <div className="routes-banner routes-banner--error" role="alert" style={{ marginBottom: '1rem' }}>
               {error}
             </div>
           ) : null}
 
           {loading ? (
-            <p className="routes-muted">Loading routes…</p>
+            <div className="welcome-card" style={{ padding: '40px', textAlign: 'center' }}>
+               <p className="routes-muted">Loading routes list...</p>
+            </div>
           ) : rows.length === 0 ? (
-            <p className="routes-muted">No routes to display.</p>
+            <div className="welcome-card" style={{ padding: '40px', textAlign: 'center' }}>
+               <p className="routes-muted">No routes found for your jurisdiction.</p>
+            </div>
           ) : (
             <div className="routes-table-wrap">
               <table className="routes-table">
@@ -216,26 +251,77 @@ export default function RoutesPage() {
                   <tr>
                     <th scope="col">Code</th>
                     <th scope="col">Name</th>
-                    <th scope="col">Plant</th>
                     <th scope="col">Branch</th>
                     <th scope="col">Executive</th>
+                    <th scope="col" style={{ textAlign: 'center' }}>Action</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map((r) => (
-                    <tr key={r.id}>
-                      <td className="routes-table-mono">{r.code}</td>
-                      <td>
-                        <span className="routes-name">{r.name}</span>
-                        {r.description ? (
-                          <span className="routes-desc">{r.description}</span>
-                        ) : null}
-                      </td>
-                      <td>{r.plantLabel ?? '—'}</td>
-                      <td>{r.branchLabel ?? '—'}</td>
-                      <td>{r.executiveLabel ?? '—'}</td>
-                    </tr>
-                  ))}
+                  {rows.map((r) => {
+                    const isExpanded = expandedRouteId === r.id;
+                    const indents = routeIndents[r.id] || [];
+                    const isLoading = loadingIndents.has(r.id);
+
+                    return (
+                      <Fragment key={r.id}>
+                        <tr>
+                          <td className="routes-table-mono">{r.code}</td>
+                          <td>
+                            <span className="routes-name">{r.name}</span>
+                            {r.description ? (
+                              <span className="routes-desc">{r.description}</span>
+                            ) : null}
+                          </td>
+                          <td>{r.branchLabel ?? '—'}</td>
+                          <td>{r.executiveLabel ?? '—'}</td>
+                          <td style={{ textAlign: 'center' }}>
+                            <button 
+                              onClick={() => toggleRoute(r.id)}
+                              className={`pill ${isExpanded ? 'status-rejected' : 'status-pending'}`}
+                              style={{ border: 'none', cursor: 'pointer', minWidth: '100px' }}
+                            >
+                              {isExpanded ? 'Close' : 'View Indents'}
+                            </button>
+                          </td>
+                        </tr>
+                        {isExpanded && (
+                          <tr className="expanded-row-bg">
+                            <td colSpan={5} style={{ padding: '16px', backgroundColor: '#f8fafc' }}>
+                              <div style={{ borderLeft: '4px solid #0ea5e9', paddingLeft: '16px' }}>
+                                <h4 style={{ margin: '0 0 12px', fontSize: '14px', color: '#334155' }}>
+                                  Indents for Route: {r.name}
+                                </h4>
+                                
+                                {isLoading ? (
+                                  <p style={{ fontSize: '13px', color: '#64748b' }}>Loading indents...</p>
+                                ) : indents.length === 0 ? (
+                                  <p style={{ fontSize: '13px', color: '#64748b' }}>No indents found for this route.</p>
+                                ) : (
+                                  <div className="indent-list" style={{ gap: '8px' }}>
+                                    {indents.map((idx) => (
+                                      <div key={idx._id} className="indent-card-small" style={{ padding: '8px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div>
+                                          <p style={{ fontWeight: 'bold', margin: '0 0 2px', fontSize: '13px' }}>
+                                            {idx.indentNumber}
+                                          </p>
+                                          <p style={{ margin: 0, fontSize: '11px', color: '#64748b' }}>
+                                            {new Date(idx.createdAt!).toLocaleDateString()} · {idx.agent?.fname} {idx.agent?.lname}
+                                          </p>
+                                        </div>
+                                        <span className={`pill status-${(idx.status || '').toLowerCase()}`} style={{ fontSize: '10px' }}>
+                                          {idx.status}
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

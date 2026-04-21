@@ -603,6 +603,7 @@ export async function fetchIndentsApi(
   const url = `${INDENTS_ENDPOINT}${qs ? `?${qs}` : ''}`;
 
   const response = await fetch(url, {
+    cache: 'no-store',
     headers: buildAuthHeaders(false, token)
   });
   if (!response.ok) {

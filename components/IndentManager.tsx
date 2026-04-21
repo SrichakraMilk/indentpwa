@@ -150,25 +150,35 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
         const canView = isCorporate || isSupervisor || isMyIndent;
         if (!canView) return false;
 
-        const IApproved = indent.approvalLog?.some(log => 
+        // --- Cycle Awareness Logic ---
+        // Find the index of the most recent submission/resubmission to distinguish between cycles.
+        const approvalLog = indent.approvalLog || [];
+        const lastSubmissionIndex = approvalLog.reduce((idx, log, i) => {
+          const status = (log.status || '').toLowerCase();
+          return (status === 'submitted' || status === 'resubmitted') ? i : idx;
+        }, -1);
+        
+        // Only evaluate actions taken in the current cycle (after the latest submission)
+        const currentCycleLogs = approvalLog.slice(lastSubmissionIndex + 1);
+
+        const IApproved = currentCycleLogs.some(log => 
           myActualRoles.includes((log.role || '').toUpperCase()) && log.status === 'Approved'
         );
-        const IRejected = indent.approvalLog?.some(log => 
+        const IRejected = currentCycleLogs.some(log => 
           myActualRoles.includes((log.role || '').toUpperCase()) && log.status === 'Rejected'
         );
+        // -----------------------------
 
         if (filterStatus === 'pending') {
           if (s !== 'pending') return false;
           
-          // If we passed the `canView` check above, then this indent belongs
-          // either to their explicitly assigned pool, their branch, or their plant (for AMs).
-          // We should show ALL pending indents in their jurisdiction, not just the ones
-          // where it's explicitly their turn, so they have full oversight.
-          
           const isAgent = userRoleCode === 'AGENT' || userRoleCode === 'AGT';
           if (isAgent) return isMyIndent;
 
-          // Supervisors/corporate see all pending indents in their jurisdiction
+          // Supervisors/corporate see pending indents in their jurisdiction
+          // BUT only if they haven't already taken action (Approved/Rejected) in this cycle.
+          if (IApproved || IRejected) return false;
+
           return true;
         }
 
