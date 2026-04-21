@@ -83,8 +83,8 @@ export default function RoutesPage() {
       doc.setFontSize(18);
       doc.text('Approved Indents Report', pageWidth / 2, 15, { align: 'center' });
       doc.setFontSize(10);
-      doc.text(`Route: ${agent.route.name} (${agent.route.code})`, 14, 25);
-      doc.text(`Executive: ${agent.fname} ${agent.lname}`, 14, 30);
+      doc.text(`Route: ${agent?.route?.name || 'N/A'} (${agent?.route?.code || 'N/A'})`, 14, 25);
+      doc.text(`Executive: ${agent?.fname || ''} ${agent?.lname || ''}`, 14, 30);
       doc.text(`Date: ${today}`, 14, 35);
 
       // Consolidated Summary
