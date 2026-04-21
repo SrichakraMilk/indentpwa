@@ -139,9 +139,15 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
         // Corporate oversight: GM+, AE, AI usually see everything or use API filtering
         const isCorporate = isGM || isAE || isAI || userRoleCode === 'ADMIN';
         
-        // Final ownership check: See it if it's mine, my branch, my plant (for AM), it's my turn, or I am corporate
-        const canView = isMyIndent || isMyBranch || (isAM && isMyPlant) || isMyTurnActive || isCorporate;
-
+        const isAgent = userRoleCode === 'AGENT' || userRoleCode === 'AGT';
+        
+        // Final ownership check:
+        // 1. Corporate / Admin see everything the API returns.
+        // 2. Supervisors (AM, BM, SE) also see whatever the API returns (as it's already filtered to their jurisdiction).
+        // 3. Agents only see it if they are the owner/creator.
+        const isSupervisor = isAM || isBM || userRoleCode === 'SE' || userRoleCode === 'SALES EXECUTIVE';
+        
+        const canView = isCorporate || isSupervisor || isMyIndent;
         if (!canView) return false;
 
         const IApproved = indent.approvalLog?.some(log => 
