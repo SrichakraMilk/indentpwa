@@ -124,11 +124,15 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
         const indentBranchId = String(linkedEntityId(indent.branch) || '');
         const isMyBranch = !!userBranchId && userBranchId === indentBranchId;
 
+        const userPlantId = String(linkedEntityId(agent?.plant) || '');
+        const indentPlantId = String(linkedEntityId(indent.plant) || '');
+        const isMyPlant = !!userPlantId && userPlantId === indentPlantId;
+
         // Corporate oversight: GM+, AE, AI usually see everything or use API filtering
         const isCorporate = isGM || isAE || isAI || userRoleCode === 'ADMIN';
         
-        // Final ownership check: I can see it if it's mine, my branch, OR I am corporate
-        const canView = isMyIndent || isMyBranch || isCorporate;
+        // Final ownership check: I can see it if it's mine, my branch, OR I am an AM for this plant, OR I am corporate
+        const canView = isMyIndent || isMyBranch || (isAM && isMyPlant) || isCorporate;
         if (!canView) return false;
 
         const IApproved = indent.approvalLog?.some(log => 
