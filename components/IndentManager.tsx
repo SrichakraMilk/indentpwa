@@ -120,11 +120,13 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
           
           const isMyTurn = myActualRoles.includes(currentStep);
           
-          const myIds = [agent?._id, agent?.id, agent?.userId].filter(Boolean).map(id => String(id));
-          const targetAgentId = linkedEntityId(indent.agent);
-          const targetCreatorId = linkedEntityId(indent.createdBy);
-          
-          const isMyIndent = myIds.some(myId => myId === String(targetAgentId || '') || myId === String(targetCreatorId || ''));
+          const isMyIndent = myIds.some(myId => 
+            myId === String(targetAgentId || '') || 
+            myId === String(targetCreatorId || '') ||
+            myId === String(linkedEntityId(indent.executive) || '') ||
+            myId === String(linkedEntityId(indent.branchManager) || '') ||
+            myId === String(linkedEntityId(indent.areaManager) || '')
+          );
 
           const isAgent = userRoleCode === 'AGENT' || userRoleCode === 'AGT';
           if (isAgent && isMyIndent) return true;
