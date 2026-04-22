@@ -1,6 +1,8 @@
 'use client';
 
 import { useMemo } from 'react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import type { IndentRecord } from '@/lib/api';
 
 interface Props {
@@ -121,6 +123,96 @@ export default function RouteIndentSheet({ routeName, routeCode, date, indents, 
 
   const fmt = (n: number) => (n === 0 ? '' : n % 1 === 0 ? String(n) : n.toFixed(1));
 
+  // ── PDF download ─────────────────────────────────────────
+  const downloadPDF = () => {
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const pw = doc.internal.pageSize.getWidth();
+
+    // Title block
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Srichakra Milk Products LLP', pw / 2, 14, { align: 'center' });
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Indent  |  Route: ${routeName} (${routeCode})  |  Date: ${date}`, pw / 2, 21, { align: 'center' });
+
+    // Build head rows for autoTable
+    // Row 1: group spans
+    // Row 2: product sub-columns
+    const fixedLeft = ['Agent Code', 'Agent Name'];
+    const fixedRight = ['Total Crates', 'Total Nuckets', 'Total Cans'];
+
+    const milkLabels = milkCols.map(c => c.label.replace('\n', ' '));
+    const curdLabels = curdCols.map(c => c.label.replace('\n', ' '));
+
+    // autoTable head array (each inner array = one header row)
+    const head: string[][] = [
+      [
+        ...fixedLeft,
+        ...(milkCols.length ? [`Milk Products (${milkLabels.join(', ')})`] : []),
+        ...Array(Math.max(0, milkCols.length - 1)).fill(''),
+        ...(curdCols.length ? [`Curd (${curdLabels.join(', ')})`] : []),
+        ...Array(Math.max(0, curdCols.length - 1)).fill(''),
+        ...fixedRight,
+      ],
+      [
+        ...fixedLeft,
+        ...milkLabels,
+        ...curdLabels,
+        ...fixedRight,
+      ],
+    ];
+
+    // Body rows
+    const body: (string | number)[][] = rows.map(row => [
+      row.code,
+      row.name,
+      ...cols.map(c => fmt(row.cells[c.key] || 0)),
+      fmt(row.crates),
+      fmt(row.buckets),
+      fmt(row.cans),
+    ]);
+
+    // Totals row
+    body.push([
+      'TOTAL', '',
+      ...cols.map(c => fmt(totals.cells[c.key] || 0)),
+      fmt(totals.crates),
+      fmt(totals.buckets),
+      fmt(totals.cans),
+    ]);
+
+    autoTable(doc, {
+      startY: 27,
+      head,
+      body,
+      styles: { fontSize: 7, cellPadding: 2, halign: 'center' },
+      headStyles: { fillColor: [30, 58, 138], textColor: 255, fontStyle: 'bold', fontSize: 7 },
+      columnStyles: {
+        0: { cellWidth: 18 },
+        1: { cellWidth: 30, halign: 'left' },
+      },
+      // Highlight totals row
+      didParseCell(data) {
+        if (data.section === 'body' && data.row.index === body.length - 1) {
+          data.cell.styles.fontStyle = 'bold';
+          data.cell.styles.fillColor = [241, 245, 249];
+        }
+        // Colour milk columns
+        const colIdx = data.column.index;
+        if (colIdx >= 2 && colIdx < 2 + milkCols.length) {
+          if (data.section === 'head') data.cell.styles.fillColor = [219, 234, 254];
+        }
+        // Colour curd columns
+        if (colIdx >= 2 + milkCols.length && colIdx < 2 + milkCols.length + curdCols.length) {
+          if (data.section === 'head') data.cell.styles.fillColor = [220, 252, 231];
+        }
+      },
+    });
+
+    doc.save(`Indent_${routeCode}_${date.replace(/\s/g, '_')}.pdf`);
+  };
+
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 5000,
@@ -147,7 +239,13 @@ export default function RouteIndentSheet({ routeName, routeCode, date, indents, 
               Indent · {routeName} ({routeCode}) · {date}
             </p>
           </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
+        <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              onClick={downloadPDF}
+              style={{ padding: '6px 14px', background: '#10b981', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 700 }}
+            >
+              📄 Download PDF
+            </button>
             <button
               onClick={() => window.print()}
               style={{ padding: '6px 14px', background: '#fff', color: '#1e3a8a', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 700 }}
