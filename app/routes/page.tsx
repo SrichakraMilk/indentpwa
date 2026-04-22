@@ -6,7 +6,7 @@ import ProtectedPage from '@/components/ProtectedPage';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { useAuth } from '@/components/AuthProvider';
-import { fetchRoutesApi, fetchIndentsApi, linkedEntityId, type SalesRouteRow } from '@/lib/api';
+import { fetchRoutesApi, fetchIndentsApi, linkedEntityId, type SalesRouteRow, type IndentRecord } from '@/lib/api';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
