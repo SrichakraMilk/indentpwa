@@ -252,11 +252,9 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
                     </div>
 
                     {/* Primary: Route + Agent */}
-                    <p style={{ marginTop: '6px', marginBottom: '2px', fontSize: '15px', fontWeight: 700, color: '#111827' }}>
-                      {(indent.route as any)?.name || (indent.route as any)?.code || 'Unknown Route'}
-                    </p>
+
                     {indent.agent && (
-                      <h3 style={{ margin: '0 0 4px', fontSize: '13px', fontWeight: 600, color: '#374151' }}>
+                      <h3 style={{ margin: '5px 4px', padding: '5px 0', fontSize: '15px', fontWeight: 600, color: '#374151' }}>
                         👤 {[
                           (indent.agent as any)?.fname,
                           (indent.agent as any)?.lname
@@ -266,6 +264,9 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
                           : null}
                       </h3>
                     )}
+                    <p style={{ marginTop: '6px', marginBottom: '2px', fontSize: '13px', fontWeight: 400, color: '#111827' }}>
+                      {(indent.route as any)?.name || (indent.route as any)?.code || 'Unknown Route'}
+                    </p>
 
                     {/* Secondary: Indent number */}
                     <p style={{ margin: '0 0 4px', fontSize: '11px', color: '#9ca3af', fontWeight: 500 }}>
