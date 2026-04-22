@@ -64,6 +64,7 @@ const PRODUCTS_ENDPOINT = '/api/products';
 const UNITS_ENDPOINT = '/api/units';
 const DC_ENDPOINT = '/api/delivery-challans';
 const CHANGE_PASSWORD_ENDPOINT = '/api/auth/change-password';
+const AGENT_PRICE_CHART_ENDPOINT = '/api/agent-price-chart';
 const AUTH_STORAGE_KEY = 'indent-pwa-auth';
 
 export interface DcItem {
@@ -145,6 +146,48 @@ export async function changePasswordApi(
     throw new Error(data.error ?? `Change password failed (${res.status})`);
   }
   return { message: data.message ?? 'Password changed successfully' };
+}
+
+export interface AgentPriceChartEntry {
+  _id: string;
+  product: {
+    _id: string;
+    name: string;
+    code?: string;
+    sku?: string;
+    price?: number;
+    size?: string;
+    category?: { _id: string; name: string } | string;
+  };
+  price: number;
+  effectiveFrom?: string;
+  isActive: boolean;
+}
+
+/**
+ * Fetch all active price overrides for a given agent.
+ * Returns a Map<productId, agentPrice> for O(1) lookups in catalog/forms.
+ */
+export async function fetchAgentPriceChartApi(
+  agentId: string,
+  token?: string
+): Promise<Map<string, number>> {
+  const authToken = token ?? getAuthToken();
+  const res = await fetch(`${AGENT_PRICE_CHART_ENDPOINT}?agent=${agentId}`, {
+    headers: {
+      Accept: 'application/json',
+      ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+    },
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Failed to fetch price chart (${res.status})`);
+  const data = await res.json() as { charts?: AgentPriceChartEntry[] };
+  const map = new Map<string, number>();
+  (data.charts ?? []).forEach(c => {
+    const pid = typeof c.product === 'object' ? c.product._id : String(c.product);
+    if (pid) map.set(pid, c.price);
+  });
+  return map;
 }
 
 export interface IndentItem {
