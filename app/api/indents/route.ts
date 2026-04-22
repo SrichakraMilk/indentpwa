@@ -24,7 +24,11 @@ export async function GET(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization');
     const bearer = extractBearerToken(authHeader);
-    const response = await fetch(`${getUpstreamApiBase()}/indents`, {
+    // Forward all query params (route, status, date, page, limit) to the upstream
+    const { searchParams } = new URL(request.url);
+    const qs = searchParams.toString();
+    const upstreamUrl = `${getUpstreamApiBase()}/indents${qs ? `?${qs}` : ''}`;
+    const response = await fetch(upstreamUrl, {
       method: 'GET',
       headers: {
         Accept: 'application/json',

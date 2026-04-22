@@ -95,7 +95,7 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
   const isAE = userRoleCode === 'AE' || userRoleCode?.includes('ACCOUNTS EXECUTIVE');
   const isAI = userRoleCode === 'AI' || userRoleCode?.includes('ACCOUNTS INCHARGE');
   const isDS = userRoleCode === 'DS' || userRoleCode?.includes('DISPATCH SUPERVISOR');
-  
+
   const myActualRoles = [userRoleCode || ''];
   if (isBM) { myActualRoles.push('BM', 'ABM'); }
   if (isAM) { myActualRoles.push('AM'); }
@@ -105,103 +105,103 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
 
   const visibleIndents = Array.isArray(indents)
     ? indents.filter((indent) => {
-        const s = (indent.status || '').toLowerCase();
-        const currentStep = (indent.currentStep || 'SE').toUpperCase();
-        
-        const myIds = [agent?._id, agent?.id, agent?.userId].filter(Boolean).map(id => String(id));
-        const targetAgentId = linkedEntityId(indent.agent);
-        const targetCreatorId = linkedEntityId(indent.createdBy);
-        
-        const isMyIndent = myIds.some(myId => 
-          myId === String(targetAgentId || '') || 
-          myId === String(targetCreatorId || '') ||
-          myId === String(linkedEntityId(indent.executive) || '') ||
-          myId === String(linkedEntityId(indent.branchManager) || '') ||
-          myId === String(linkedEntityId(indent.areaManager) || '') ||
-          myId === String(linkedEntityId(indent.branch?.executive) || '') ||
-          myId === String(linkedEntityId(indent.branch?.branchManager) || '') ||
-          myId === String(linkedEntityId(indent.branch?.areaManager) || '')
-        );
+      const s = (indent.status || '').toLowerCase();
+      const currentStep = (indent.currentStep || 'SE').toUpperCase();
 
-        const userBranchId = String(linkedEntityId(agent?.branch) || '');
-        const indentBranchId = String(linkedEntityId(indent.branch) || '');
-        const isMyBranch = !!userBranchId && userBranchId === indentBranchId;
+      const myIds = [agent?._id, agent?.id, agent?.userId].filter(Boolean).map(id => String(id));
+      const targetAgentId = linkedEntityId(indent.agent);
+      const targetCreatorId = linkedEntityId(indent.createdBy);
 
-        const userPlantId = String(linkedEntityId(agent?.plant) || '');
-        const indentPlantId = String(linkedEntityId(indent.plant) || '');
-        const isMyPlant = !!userPlantId && userPlantId === indentPlantId;
+      const isMyIndent = myIds.some(myId =>
+        myId === String(targetAgentId || '') ||
+        myId === String(targetCreatorId || '') ||
+        myId === String(linkedEntityId(indent.executive) || '') ||
+        myId === String(linkedEntityId(indent.branchManager) || '') ||
+        myId === String(linkedEntityId(indent.areaManager) || '') ||
+        myId === String(linkedEntityId(indent.branch?.executive) || '') ||
+        myId === String(linkedEntityId(indent.branch?.branchManager) || '') ||
+        myId === String(linkedEntityId(indent.branch?.areaManager) || '')
+      );
 
-        // Is it currently this user's turn acting as a supervisor?
-        const isMyTurnForRole = myActualRoles.includes(currentStep);
-        const myJurisdiction = (isAM && isMyPlant) || isMyBranch || isMyIndent;
-        const isMyTurnActive = (s === 'pending') && isMyTurnForRole && myJurisdiction;
+      const userBranchId = String(linkedEntityId(agent?.branch) || '');
+      const indentBranchId = String(linkedEntityId(indent.branch) || '');
+      const isMyBranch = !!userBranchId && userBranchId === indentBranchId;
 
-        // Corporate oversight: GM+, AE, AI usually see everything or use API filtering
-        const isCorporate = isGM || isAE || isAI || userRoleCode === 'ADMIN';
-        
+      const userPlantId = String(linkedEntityId(agent?.plant) || '');
+      const indentPlantId = String(linkedEntityId(indent.plant) || '');
+      const isMyPlant = !!userPlantId && userPlantId === indentPlantId;
+
+      // Is it currently this user's turn acting as a supervisor?
+      const isMyTurnForRole = myActualRoles.includes(currentStep);
+      const myJurisdiction = (isAM && isMyPlant) || isMyBranch || isMyIndent;
+      const isMyTurnActive = (s === 'pending') && isMyTurnForRole && myJurisdiction;
+
+      // Corporate oversight: GM+, AE, AI usually see everything or use API filtering
+      const isCorporate = isGM || isAE || isAI || userRoleCode === 'ADMIN';
+
+      const isAgent = userRoleCode === 'AGENT' || userRoleCode === 'AGT';
+
+      // Final ownership check:
+      // 1. Corporate / Admin see everything the API returns.
+      // 2. Supervisors (AM, BM, SE) also see whatever the API returns (as it's already filtered to their jurisdiction).
+      // 3. Agents only see it if they are the owner/creator.
+      const isSupervisor = isAM || isBM || userRoleCode === 'SE' || userRoleCode === 'SALES EXECUTIVE';
+
+      const canView = isCorporate || isSupervisor || isMyIndent;
+      if (!canView) return false;
+
+      // --- Cycle Awareness Logic ---
+      // Find the index of the most recent submission/resubmission to distinguish between cycles.
+      const approvalLog = indent.approvalLog || [];
+      const lastSubmissionIndex = approvalLog.reduce((idx, log, i) => {
+        const status = (log.status || '').toLowerCase();
+        return (status === 'submitted' || status === 'resubmitted') ? i : idx;
+      }, -1);
+
+      // Only evaluate actions taken in the current cycle (after the latest submission)
+      const currentCycleLogs = approvalLog.slice(lastSubmissionIndex + 1);
+
+      const IApproved = currentCycleLogs.some(log =>
+        myActualRoles.includes((log.role || '').toUpperCase()) && log.status === 'Approved'
+      );
+      const IRejected = currentCycleLogs.some(log =>
+        myActualRoles.includes((log.role || '').toUpperCase()) && log.status === 'Rejected'
+      );
+      // -----------------------------
+
+      if (filterStatus === 'pending') {
+        if (s !== 'pending') return false;
+
         const isAgent = userRoleCode === 'AGENT' || userRoleCode === 'AGT';
-        
-        // Final ownership check:
-        // 1. Corporate / Admin see everything the API returns.
-        // 2. Supervisors (AM, BM, SE) also see whatever the API returns (as it's already filtered to their jurisdiction).
-        // 3. Agents only see it if they are the owner/creator.
-        const isSupervisor = isAM || isBM || userRoleCode === 'SE' || userRoleCode === 'SALES EXECUTIVE';
-        
-        const canView = isCorporate || isSupervisor || isMyIndent;
-        if (!canView) return false;
+        if (isAgent) return isMyIndent;
 
-        // --- Cycle Awareness Logic ---
-        // Find the index of the most recent submission/resubmission to distinguish between cycles.
-        const approvalLog = indent.approvalLog || [];
-        const lastSubmissionIndex = approvalLog.reduce((idx, log, i) => {
-          const status = (log.status || '').toLowerCase();
-          return (status === 'submitted' || status === 'resubmitted') ? i : idx;
-        }, -1);
-        
-        // Only evaluate actions taken in the current cycle (after the latest submission)
-        const currentCycleLogs = approvalLog.slice(lastSubmissionIndex + 1);
+        // Supervisors/corporate see pending indents in their jurisdiction
+        // BUT only if they haven't already taken action (Approved/Rejected) in this cycle.
+        if (IApproved || IRejected) return false;
 
-        const IApproved = currentCycleLogs.some(log => 
-          myActualRoles.includes((log.role || '').toUpperCase()) && log.status === 'Approved'
-        );
-        const IRejected = currentCycleLogs.some(log => 
-          myActualRoles.includes((log.role || '').toUpperCase()) && log.status === 'Rejected'
-        );
-        // -----------------------------
+        return true;
+      }
 
-        if (filterStatus === 'pending') {
-          if (s !== 'pending') return false;
-          
-          const isAgent = userRoleCode === 'AGENT' || userRoleCode === 'AGT';
-          if (isAgent) return isMyIndent;
+      if (filterStatus === 'approved') {
+        if (s === 'approved') return true;
+        const isAgent = userRoleCode === 'AGENT' || userRoleCode === 'AGT';
+        if (isAgent) return isMyIndent && s === 'approved';
+        if (s === 'pending' && IApproved) return true;
+        return false;
+      }
 
-          // Supervisors/corporate see pending indents in their jurisdiction
-          // BUT only if they haven't already taken action (Approved/Rejected) in this cycle.
-          if (IApproved || IRejected) return false;
+      if (filterStatus === 'rejected') {
+        if (s === 'rejected') return true;
+        if (s === 'pending' && IRejected) return true;
+        return false;
+      }
 
-          return true;
-        }
+      if (filterStatus === 'fulfilled') {
+        return s === 'fulfilled';
+      }
 
-        if (filterStatus === 'approved') {
-          if (s === 'approved') return true;
-          const isAgent = userRoleCode === 'AGENT' || userRoleCode === 'AGT';
-          if (isAgent) return isMyIndent && s === 'approved';
-          if (s === 'pending' && IApproved) return true;
-          return false;
-        }
-
-        if (filterStatus === 'rejected') {
-          if (s === 'rejected') return true;
-          if (s === 'pending' && IRejected) return true;
-          return false;
-        }
-
-        if (filterStatus === 'fulfilled') {
-          return s === 'fulfilled';
-        }
-
-        return s === (filterStatus || 'pending').toLowerCase();
-      })
+      return s === (filterStatus || 'pending').toLowerCase();
+    })
       .sort((a, b) => {
         const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
         const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
@@ -209,8 +209,8 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
       })
     : [];
 
-  const listHeading = filterStatus 
-    ? `${statusLabelMap[filterStatus] || (filterStatus.charAt(0).toUpperCase() + filterStatus.slice(1))} Indents` 
+  const listHeading = filterStatus
+    ? `${statusLabelMap[filterStatus] || (filterStatus.charAt(0).toUpperCase() + filterStatus.slice(1))} Indents`
     : 'All Indents';
 
   return (
@@ -250,9 +250,30 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
                         {formattedDate}
                       </span>
                     </div>
-                    <h3 style={{ marginTop: '4px' }}>{indent.indentNumber}</h3>
+
+                    {/* Primary: Route + Agent */}
+                    <p style={{ marginTop: '6px', marginBottom: '2px', fontSize: '15px', fontWeight: 700, color: '#111827' }}>
+                      {(indent.route as any)?.name || (indent.route as any)?.code || 'Unknown Route'}
+                    </p>
+                    {indent.agent && (
+                      <h3 style={{ margin: '0 0 4px', fontSize: '13px', fontWeight: 600, color: '#374151' }}>
+                        👤 {[
+                          (indent.agent as any)?.fname,
+                          (indent.agent as any)?.lname
+                        ].filter(Boolean).join(' ') || '—'}
+                        {((indent.agent as any)?.agentCode || (indent.agent as any)?.userid)
+                          ? <span style={{ fontWeight: 400, color: '#6b7280', fontSize: '12px' }}> · {(indent.agent as any).agentCode || (indent.agent as any).userid}</span>
+                          : null}
+                      </h3>
+                    )}
+
+                    {/* Secondary: Indent number */}
+                    <p style={{ margin: '0 0 4px', fontSize: '11px', color: '#9ca3af', fontWeight: 500 }}>
+                      {indent.indentNumber}
+                    </p>
+
                     {(indent.status || '').toLowerCase() === 'pending' && indent.currentStep && (
-                      <p style={{ fontSize: '13px', fontWeight: 600, color: '#0e7490', marginTop: '4px' }}>
+                      <p style={{ fontSize: '12px', fontWeight: 600, color: '#0e7490', marginTop: '4px' }}>
                         {(() => {
                           const step = (indent.currentStep || '').toUpperCase();
                           if (step === 'SE') return 'Pending SE approval';
@@ -265,7 +286,7 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
                         })()}
                       </p>
                     )}
-                    <p style={{ fontSize: '12px', opacity: 0.7 }}>
+                    <p style={{ fontSize: '12px', opacity: 0.6, margin: 0 }}>
                       Items: {indent.items?.length || 0}
                     </p>
                   </div>
@@ -273,7 +294,7 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
                   <div className="indent-actions" onClick={(e) => e.stopPropagation()}>
                     {isTurn && (
                       <div className="status-label-container" style={{ display: 'flex', gap: '8px' }}>
-                         <span className="pill status-pending" style={{ fontSize: '10px' }}>Your Turn</span>
+                        <span className="pill status-pending" style={{ fontSize: '10px' }}>Your Turn</span>
                       </div>
                     )}
                   </div>
@@ -286,14 +307,14 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
 
       {selectedIndent ? (
         <div className="indent-details-overlay" onClick={() => setSelectedIndent(null)}>
-          <div 
-            className="indent-details-card" 
+          <div
+            className="indent-details-card"
             onClick={(e) => e.stopPropagation()}
-            style={{ 
-              maxHeight: '90vh', 
-              overflowY: 'auto', 
-              display: 'flex', 
-              flexDirection: 'column' 
+            style={{
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              display: 'flex',
+              flexDirection: 'column'
             }}
           >
             <div className="indent-details-header" style={{ position: 'sticky', top: 0, background: '#fff', zIndex: 10, paddingBottom: '10px' }}>
@@ -307,6 +328,37 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
                 ×
               </button>
             </div>
+
+            {/* Meta info: Route, Agent */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '14px', padding: '10px 12px', background: '#f8fafc', borderRadius: '10px', fontSize: '13px' }}>
+              {selectedIndent.route && (
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: '#6b7280', fontWeight: 500 }}>Route</span>
+                  <span style={{ fontWeight: 600, color: '#1e40af' }}>
+                    {selectedIndent.route?.name || '—'}
+                    {selectedIndent.route?.code ? ` (${selectedIndent.route.code})` : ''}
+                  </span>
+                </div>
+              )}
+              {selectedIndent.agent && (
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: '#6b7280', fontWeight: 500 }}>Agent</span>
+                  <span style={{ fontWeight: 600 }}>
+                    {[selectedIndent.agent?.fname, selectedIndent.agent?.lname].filter(Boolean).join(' ') || '—'}
+                    {selectedIndent.agent?.agentCode ? (
+                      <span style={{ marginLeft: '6px', fontSize: '11px', color: '#6b7280', fontWeight: 400 }}>
+                        ({selectedIndent.agent.agentCode})
+                      </span>
+                    ) : selectedIndent.agent?.userid ? (
+                      <span style={{ marginLeft: '6px', fontSize: '11px', color: '#6b7280', fontWeight: 400 }}>
+                        ({selectedIndent.agent.userid})
+                      </span>
+                    ) : null}
+                  </span>
+                </div>
+              )}
+            </div>
+
             <p className="indent-details-remarks">{selectedIndent.remarks || 'No remarks available'}</p>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
               <p style={{ margin: 0 }}>
@@ -332,13 +384,13 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
             </div>
 
             {selectedIndent.deliveryChallan && (
-              <div 
-                className="dc-link-card" 
-                style={{ 
-                  marginBottom: '20px', 
-                  padding: '12px', 
-                  backgroundColor: '#f0f9ff', 
-                  borderRadius: '10px', 
+              <div
+                className="dc-link-card"
+                style={{
+                  marginBottom: '20px',
+                  padding: '12px',
+                  backgroundColor: '#f0f9ff',
+                  borderRadius: '10px',
                   border: '1px solid #bae6fd',
                   display: 'flex',
                   justifyContent: 'space-between',
@@ -349,7 +401,7 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
                   <p style={{ margin: 0, fontSize: '12px', color: '#0369a1', fontWeight: 600 }}>DELIVERY CHALLAN</p>
                   <p style={{ margin: 0, fontSize: '15px', fontWeight: 700 }}>{selectedIndent.deliveryChallan.dcNumber || 'Generated'}</p>
                 </div>
-                <button 
+                <button
                   onClick={(e) => { e.stopPropagation(); setShowDcDetails(true); }}
                   style={{ padding: '6px 12px', backgroundColor: '#0ea5e9', color: 'white', border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: 600 }}
                 >
@@ -407,7 +459,7 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
                 const currentStep = (selectedIndent.currentStep || '').toUpperCase();
                 const isTurn = s === 'pending' && myActualRoles.includes(currentStep);
                 const isRejected = s === 'rejected';
-                
+
                 // Ownership check for Resubmit
                 const myIds = [agent?._id, agent?.id, agent?.userId].filter(Boolean).map(id => String(id));
                 const targetAgentId = linkedEntityId(selectedIndent.agent);
@@ -486,12 +538,12 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
         </div>
       ) : null}
 
-      <NewIndentModal 
-        open={isModalOpen} 
+      <NewIndentModal
+        open={isModalOpen}
         onClose={() => {
           setIsModalOpen(false);
           setEditData(undefined);
-        }} 
+        }}
         onCreated={refresh}
         initialData={editData}
       />
@@ -503,7 +555,7 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
               <h3>DC: {selectedIndent.deliveryChallan.dcNumber}</h3>
               <button type="button" className="indent-details-close" onClick={() => setShowDcDetails(false)}>×</button>
             </div>
-            
+
             <div className="print-content">
               <style jsx>{`
                 @media print {
@@ -530,108 +582,108 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
               </div>
 
               <div style={{ marginBottom: '15px', padding: '10px', background: '#f8fafc', borderRadius: '8px', fontSize: '13px' }}>
-              <p style={{ margin: '4px 0' }}><strong>Status:</strong> {selectedIndent.deliveryChallan.status}</p>
-              <p style={{ margin: '4px 0' }}><strong>Date:</strong> {new Date(selectedIndent.deliveryChallan.dcDate).toLocaleDateString()}</p>
-            </div>
+                <p style={{ margin: '4px 0' }}><strong>Status:</strong> {selectedIndent.deliveryChallan.status}</p>
+                <p style={{ margin: '4px 0' }}><strong>Date:</strong> {new Date(selectedIndent.deliveryChallan.dcDate).toLocaleDateString()}</p>
+              </div>
 
-            <h4>Items In DC</h4>
-            <ul className="indent-details-items" style={{ maxHeight: '200px', overflowY: 'auto' }}>
-              {selectedIndent.deliveryChallan.items?.map((item: any, idx: number) => (
-                <li key={idx}>
-                  <span>
-                    {item.product?.name || 'Product'} 
-                    {item.size ? ` · ${item.size}` : ''}
-                    {item.unit?.name ? ` · ${item.unit.name}` : ''}
-                  </span>
-                  <span>{item.quantity}</span>
-                </li>
-              ))}
-            </ul>
+              <h4>Items In DC</h4>
+              <ul className="indent-details-items" style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                {selectedIndent.deliveryChallan.items?.map((item: any, idx: number) => (
+                  <li key={idx}>
+                    <span>
+                      {item.product?.name || 'Product'}
+                      {item.size ? ` · ${item.size}` : ''}
+                      {item.unit?.name ? ` · ${item.unit.name}` : ''}
+                    </span>
+                    <span>{item.quantity}</span>
+                  </li>
+                ))}
+              </ul>
 
-            <div className="signature-row">
-              <div className="sig-box">Accounts Executive Signature</div>
-              <div className="sig-box">Accounts Incharge Signature</div>
-            </div>
+              <div className="signature-row">
+                <div className="sig-box">Accounts Executive Signature</div>
+                <div className="sig-box">Accounts Incharge Signature</div>
+              </div>
             </div>
 
             <div className="indent-actions d-print-none" style={{ marginTop: '20px', borderTop: '1px solid #e5e7eb', paddingTop: '15px', display: 'flex', gap: '10px' }}>
-               {isDS && selectedIndent.deliveryChallan.status === 'Draft' && (
-                 <button 
-                   className="confirm-btn" 
-                   style={{ flex: 1, backgroundColor: '#f59e0b' }}
-                   onClick={async () => {
-                     try {
-                        await updateDcStatusApi(selectedIndent.deliveryChallan._id, 'In Progress', (agent as any).userId || (agent as any).id);
-                        alert('Dispatch started');
-                        setShowDcDetails(false);
-                     } catch (err) {
-                        alert('Failed to start dispatch');
-                     }
-                   }}
-                 >
-                   🏃 Dispatch In-progress
-                 </button>
-               )}
+              {isDS && selectedIndent.deliveryChallan.status === 'Draft' && (
+                <button
+                  className="confirm-btn"
+                  style={{ flex: 1, backgroundColor: '#f59e0b' }}
+                  onClick={async () => {
+                    try {
+                      await updateDcStatusApi(selectedIndent.deliveryChallan._id, 'In Progress', (agent as any).userId || (agent as any).id);
+                      alert('Dispatch started');
+                      setShowDcDetails(false);
+                    } catch (err) {
+                      alert('Failed to start dispatch');
+                    }
+                  }}
+                >
+                  🏃 Dispatch In-progress
+                </button>
+              )}
 
-               {isDS && selectedIndent.deliveryChallan.status === 'In Progress' && (
-                 <button 
-                   className="confirm-btn" 
-                   style={{ flex: 1, backgroundColor: '#10b981' }}
-                   onClick={async () => {
-                     try {
-                        await updateDcStatusApi(selectedIndent.deliveryChallan._id, 'Security Check', (agent as any).userId || (agent as any).id);
-                        alert('Dispatch completed - moved to Security');
-                        setShowDcDetails(false);
-                     } catch (err) {
-                        alert('Failed to complete dispatch');
-                     }
-                   }}
-                 >
-                   ✅ Dispatch Completed
-                 </button>
-               )}
+              {isDS && selectedIndent.deliveryChallan.status === 'In Progress' && (
+                <button
+                  className="confirm-btn"
+                  style={{ flex: 1, backgroundColor: '#10b981' }}
+                  onClick={async () => {
+                    try {
+                      await updateDcStatusApi(selectedIndent.deliveryChallan._id, 'Security Check', (agent as any).userId || (agent as any).id);
+                      alert('Dispatch completed - moved to Security');
+                      setShowDcDetails(false);
+                    } catch (err) {
+                      alert('Failed to complete dispatch');
+                    }
+                  }}
+                >
+                  ✅ Dispatch Completed
+                </button>
+              )}
 
-               {(() => {
-                 const roleCode = (agent?.role as any)?.code?.toUpperCase() || "";
-                 const isSec = roleCode === 'SEC' || roleCode === 'SECURITY';
-                 if (isSec && selectedIndent.deliveryChallan.status === 'Security Check') {
-                   return (
-                    <button 
-                      className="confirm-btn" 
+              {(() => {
+                const roleCode = (agent?.role as any)?.code?.toUpperCase() || "";
+                const isSec = roleCode === 'SEC' || roleCode === 'SECURITY';
+                if (isSec && selectedIndent.deliveryChallan.status === 'Security Check') {
+                  return (
+                    <button
+                      className="confirm-btn"
                       style={{ flex: 1, backgroundColor: '#8b5cf6' }}
                       onClick={async () => {
                         try {
-                           await updateDcStatusApi(selectedIndent.deliveryChallan._id, 'Approved', (agent as any).userId || (agent as any).id);
-                           alert('Security Cleared - Indent Fulfilled');
-                           setShowDcDetails(false);
+                          await updateDcStatusApi(selectedIndent.deliveryChallan._id, 'Approved', (agent as any).userId || (agent as any).id);
+                          alert('Security Cleared - Indent Fulfilled');
+                          setShowDcDetails(false);
                         } catch (err) {
-                           alert('Failed to clear security');
+                          alert('Failed to clear security');
                         }
                       }}
                     >
                       ✅ Security Checked
                     </button>
-                   );
-                 }
-                 return null;
-               })()}
+                  );
+                }
+                return null;
+              })()}
 
-               {(() => {
-                 const roleCode = (agent?.role as any)?.code?.toUpperCase() || "";
-                 const isRestricted = ['DS', 'SEC', 'SECURITY', 'SUP', 'AGENT', 'AGT'].includes(roleCode);
-                 if (isRestricted) return null;
-                 
-                 return (
-                   <button 
-                     className="confirm-btn" 
-                     style={{ flex: 1, backgroundColor: '#2563eb' }}
-                     onClick={() => window.print()}
-                   >
-                     🖨️ Print DC
-                   </button>
-                 );
-               })()}
-             </div>
+              {(() => {
+                const roleCode = (agent?.role as any)?.code?.toUpperCase() || "";
+                const isRestricted = ['DS', 'SEC', 'SECURITY', 'SUP', 'AGENT', 'AGT'].includes(roleCode);
+                if (isRestricted) return null;
+
+                return (
+                  <button
+                    className="confirm-btn"
+                    style={{ flex: 1, backgroundColor: '#2563eb' }}
+                    onClick={() => window.print()}
+                  >
+                    🖨️ Print DC
+                  </button>
+                );
+              })()}
+            </div>
           </div>
         </div>
       )}

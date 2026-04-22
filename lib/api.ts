@@ -264,6 +264,7 @@ function normalizeIndentRecord(raw: unknown): IndentRecord {
     approvalLog: Array.isArray(r.approvalLog) ? r.approvalLog : undefined,
     remarks: typeof r.remarks === 'string' ? r.remarks : undefined,
     items,
+    route: r.route,
     agent: r.agent,
     createdBy: r.createdBy,
     deliveryChallan: r.deliveryChallan,
@@ -285,6 +286,7 @@ export interface IndentRecord {
   }>;
   remarks?: string;
   items: IndentItem[];
+  route?: any;
   agent?: any;
   executive?: any;
   branchManager?: any;
