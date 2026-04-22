@@ -63,6 +63,7 @@ const PRODUCT_CATEGORIES_ENDPOINT = '/api/categories/products';
 const PRODUCTS_ENDPOINT = '/api/products';
 const UNITS_ENDPOINT = '/api/units';
 const DC_ENDPOINT = '/api/delivery-challans';
+const CHANGE_PASSWORD_ENDPOINT = '/api/auth/change-password';
 const AUTH_STORAGE_KEY = 'indent-pwa-auth';
 
 export interface DcItem {
@@ -110,6 +111,40 @@ export async function updateDcStatusApi(dcId: string, status: string, userId: st
     throw new Error(`Unable to update DC status: ${errorText || response.statusText}`);
   }
   return response.json();
+}
+
+/**
+ * Change the current user's password.
+ * @param currentPassword - The user's current password for verification.
+ * @param newPassword     - The new password (min 6 chars).
+ * @param token           - Optional JWT override; falls back to stored token.
+ */
+export async function changePasswordApi(
+  currentPassword: string,
+  newPassword: string,
+  token?: string
+): Promise<{ message: string }> {
+  const authToken = token ?? getAuthToken();
+  if (!authToken) throw new Error('Not authenticated');
+
+  const res = await fetch(CHANGE_PASSWORD_ENDPOINT, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${authToken}`,
+    },
+    body: JSON.stringify({
+      currentPassword,
+      newPassword,
+      confirmPassword: newPassword,
+    }),
+  });
+
+  const data = await res.json().catch(() => ({})) as { message?: string; error?: string };
+  if (!res.ok) {
+    throw new Error(data.error ?? `Change password failed (${res.status})`);
+  }
+  return { message: data.message ?? 'Password changed successfully' };
 }
 
 export interface IndentItem {
