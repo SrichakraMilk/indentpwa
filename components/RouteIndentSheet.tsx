@@ -140,7 +140,7 @@ export default function RouteIndentSheet({ routeName, routeCode, date, indents, 
     // Row 1: group spans
     // Row 2: product sub-columns
     const fixedLeft = ['Agent Code', 'Agent Name'];
-    const fixedRight = ['Total Crates', 'Total Nuckets', 'Total Cans'];
+    const fixedRight = ['Total Crates', 'Total Buckets', 'Total Cans'];
 
     const milkLabels = milkCols.map(c => c.label.replace('\n', ' '));
     const curdLabels = curdCols.map(c => c.label.replace('\n', ' '));
@@ -291,7 +291,7 @@ export default function RouteIndentSheet({ routeName, routeCode, date, indents, 
                     </th>
                   )}
                   <th rowSpan={2} style={{ ...thBase, background: '#fef9c3', color: '#713f12', minWidth: '56px' }}>Total Crates</th>
-                  <th rowSpan={2} style={{ ...thBase, background: '#fef9c3', color: '#713f12', minWidth: '56px' }}>Total Nuckets</th>
+                  <th rowSpan={2} style={{ ...thBase, background: '#fef9c3', color: '#713f12', minWidth: '56px' }}>Total Buckets</th>
                   <th rowSpan={2} style={{ ...thBase, background: '#fef9c3', color: '#713f12', minWidth: '56px' }}>Total Cans</th>
                 </tr>
                 {/* Sub-column headers */}

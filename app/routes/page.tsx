@@ -55,13 +55,14 @@ export default function RoutesPage() {
   const [sheetRoute, setSheetRoute] = useState<SalesRouteRow | null>(null);
   const [sheetIndents, setSheetIndents] = useState<IndentRecord[]>([]);
   const [sheetLoading, setSheetLoading] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
 
   const openSheet = async (route: SalesRouteRow) => {
     setSheetRoute(route);
     setSheetIndents([]);
     setSheetLoading(true);
     try {
-      const indents = await fetchIndentsApi({ route: route.id }, token);
+      const indents = await fetchIndentsApi({ route: route.id, date: selectedDate }, token);
       setSheetIndents(indents);
     } catch (err) {
       console.error('Failed to fetch indents for route:', route.id, err);
@@ -70,7 +71,7 @@ export default function RoutesPage() {
     }
   };
 
-  const today = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  const displayDate = new Date(selectedDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
 
   return (
     <ProtectedPage>
@@ -80,10 +81,26 @@ export default function RoutesPage() {
           <p className="module-back-nav">
             <Link href="/dashboard">← Dashboard</Link>
           </p>
-          <div className="flex justify-between items-center" style={{ marginBottom: '1rem' }}>
+          <div className="flex justify-between items-center" style={{ marginBottom: '1rem', display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
             <div>
               <h1 className="page-title">Routes</h1>
               <p className="module-description" style={{ marginTop: '4px' }}>{filterSummary}</p>
+            </div>
+            <div>
+              <label htmlFor="route-date" style={{ marginRight: '8px', fontSize: '14px', color: '#4b5563', fontWeight: 500 }}>Date:</label>
+              <input
+                id="route-date"
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                style={{ 
+                  padding: '8px 12px', 
+                  borderRadius: '6px', 
+                  border: '1px solid #d1d5db',
+                  fontSize: '14px',
+                  color: '#1f2937'
+                }}
+              />
             </div>
           </div>
 
@@ -155,7 +172,7 @@ export default function RoutesPage() {
         <RouteIndentSheet
           routeName={sheetRoute.name}
           routeCode={sheetRoute.code}
-          date={today}
+          date={displayDate}
           indents={sheetLoading ? [] : sheetIndents}
           onClose={() => { setSheetRoute(null); setSheetIndents([]); }}
         />
