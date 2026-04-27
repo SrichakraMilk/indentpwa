@@ -141,24 +141,30 @@ export default function NewIndentModal({
 
   // Only show products where the agent has a custom price > 1
   const filteredProducts = (allProducts || []).filter((p) => {
-    if (!p || p.categoryId !== selectedCategory) return false;
+    if (!p) return false;
     const agentPrice = priceMap.get(p.id);
     return agentPrice != null && agentPrice > 1;
   });
 
+  // Categories that have at least one eligible product
+  const eligibleCategoryIds = new Set(filteredProducts.map((p) => p.categoryId));
+
+  // Products in the selected category that are eligible
+  const filteredProductsInCategory = filteredProducts.filter((p) => p.categoryId === selectedCategory);
+
   const uniqueProductNames = Array.from(
-    new Set(filteredProducts.map((p) => (p.name || '').trim()).filter(Boolean))
+    new Set(filteredProductsInCategory.map((p) => (p.name || '').trim()).filter(Boolean))
   ).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
 
-  // Helper: get agent price for a given product name (first match in filteredProducts)
+  // Helper: get agent price for a given product name (first match in filteredProductsInCategory)
   const getAgentPriceForName = (name: string): number | undefined => {
-    const match = filteredProducts.find((p) => p.name === name);
+    const match = filteredProductsInCategory.find((p) => p.name === name);
     return match ? priceMap.get(match.id) : undefined;
   };
 
   const sizeOptions = Array.from(
     new Set(
-      filteredProducts
+      filteredProductsInCategory
         .filter((p) => p.name === selectedProduct)
         .map((p) => (p.size ?? '').trim())
         .filter(Boolean)
@@ -177,7 +183,7 @@ export default function NewIndentModal({
     setError(err);
     if (err.cat || err.prod || err.size || err.unit || err.qty) return;
 
-    const resolvedProduct = filteredProducts.find(
+    const resolvedProduct = filteredProductsInCategory.find(
       (p) => p.name === selectedProduct && (p.size ?? '').trim() === selectedSize
     );
     if (!resolvedProduct) return;
@@ -286,7 +292,9 @@ export default function NewIndentModal({
               className={`indent-modal-control ${error.cat ? 'indent-modal-control-error' : ''}`}
             >
               <option value="">Select category</option>
-              {categories.map(cat => <option key={cat._id} value={cat._id}>{cat.name}</option>)}
+              {categories
+                .filter(cat => eligibleCategoryIds.has(cat._id))
+                .map(cat => <option key={cat._id} value={cat._id}>{cat.name}</option>)}
             </select>
           </label>
 
