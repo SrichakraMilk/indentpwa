@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Category, createIndentApi, fetchProductCategoriesApi, fetchProductsApi, fetchUnitsApi, IndentItem, Product, resubmitIndentApi, Unit } from '@/lib/api';
+import { Category, createIndentApi, fetchAgentPriceChartApi, fetchProductCategoriesApi, fetchProductsApi, fetchUnitsApi, IndentItem, Product, resubmitIndentApi, Unit } from '@/lib/api';
 import { useAuth } from '@/components/AuthProvider';
 
 interface IndentRow {
@@ -45,6 +45,7 @@ export default function NewIndentModal({
   const [categories, setCategories] = useState<Category[]>([]);
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
+  const [priceMap, setPriceMap] = useState<Map<string, number>>(new Map());
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedProduct, setSelectedProduct] = useState('');
   const [selectedSize, setSelectedSize] = useState('');
@@ -60,16 +61,21 @@ export default function NewIndentModal({
 
     let cancelled = false;
     async function load() {
+      // Resolve agent MongoDB _id for price chart lookup
+      const agentId = agent?._id ?? agent?.id ?? agent?.userId;
+
       const settled = await Promise.allSettled([
         fetchProductCategoriesApi(),
         fetchProductsApi(),
-        fetchUnitsApi()
+        fetchUnitsApi(),
+        agentId && token ? fetchAgentPriceChartApi(agentId, token) : Promise.resolve(new Map<string, number>())
       ]);
       if (cancelled) return;
 
-      const catResult = settled[0];
+      const catResult  = settled[0];
       const prodResult = settled[1];
       const unitResult = settled[2];
+      const priceResult = settled[3];
 
       if (catResult.status === 'fulfilled') {
         setCategories(catResult.value);
@@ -92,12 +98,19 @@ export default function NewIndentModal({
         console.error('Units fetch failed:', unitResult.reason);
         setUnits([]);
       }
+
+      if (priceResult.status === 'fulfilled') {
+        setPriceMap(priceResult.value as Map<string, number>);
+      } else {
+        console.warn('Agent price chart fetch failed:', priceResult.reason);
+        setPriceMap(new Map());
+      }
     }
     load();
     return () => {
       cancelled = true;
     };
-  }, [open]);
+  }, [open, agent, token]);
 
   useEffect(() => {
     if (!open) return;
@@ -126,10 +139,22 @@ export default function NewIndentModal({
     }
   }, [open, initialData, setRemarks, setRows, setSelectedCategory, setSelectedProduct, setSelectedSize, setSelectedUnit]);
 
-  const filteredProducts = (allProducts || []).filter((p) => p && p.categoryId === selectedCategory);
+  // Only show products where the agent has a custom price > 1
+  const filteredProducts = (allProducts || []).filter((p) => {
+    if (!p || p.categoryId !== selectedCategory) return false;
+    const agentPrice = priceMap.get(p.id);
+    return agentPrice != null && agentPrice > 1;
+  });
+
   const uniqueProductNames = Array.from(
     new Set(filteredProducts.map((p) => (p.name || '').trim()).filter(Boolean))
   ).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+
+  // Helper: get agent price for a given product name (first match in filteredProducts)
+  const getAgentPriceForName = (name: string): number | undefined => {
+    const match = filteredProducts.find((p) => p.name === name);
+    return match ? priceMap.get(match.id) : undefined;
+  };
 
   const sizeOptions = Array.from(
     new Set(
@@ -278,9 +303,14 @@ export default function NewIndentModal({
               disabled={!selectedCategory}
             >
               <option value="">Select product</option>
-              {uniqueProductNames.map((productName) => (
-                <option key={productName} value={productName}>{productName}</option>
-              ))}
+              {uniqueProductNames.map((productName) => {
+                const ap = getAgentPriceForName(productName);
+                return (
+                  <option key={productName} value={productName}>
+                    {productName}{ap != null ? ` — ₹${ap.toFixed(2)}` : ''}
+                  </option>
+                );
+              })}
             </select>
           </label>
 
