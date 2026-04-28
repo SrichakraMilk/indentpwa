@@ -12,6 +12,7 @@ interface IndentRow {
   qty: number;
   unitId: string;
   unitName: string;
+  price?: number;  // agent price per unit
 }
 
 export interface IndentEditData {
@@ -171,6 +172,7 @@ export default function NewIndentModal({
     )
   ).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
   const totalQty = rows.reduce((sum, row) => sum + row.qty, 0);
+  const totalAmount = rows.reduce((sum, row) => sum + row.qty * (row.price ?? 0), 0);
 
   const handleAddRow = () => {
     const err = {
@@ -199,7 +201,8 @@ export default function NewIndentModal({
         size: selectedSize,
         qty: Number(qty),
         unitId: selectedUnit,
-        unitName: units.find(u => u._id === selectedUnit)?.name || ''
+        unitName: units.find(u => u._id === selectedUnit)?.name || '',
+        price: priceMap.get(resolvedProduct.id)
       },
     ]);
     setQty('');
@@ -379,7 +382,14 @@ export default function NewIndentModal({
           <button type="button" onClick={handleAddRow} className="indent-modal-add-btn">
             Add Item
           </button>
-          <span className="indent-modal-summary">Items: {rows.length} | Total Qty: {totalQty}</span>
+          <span className="indent-modal-summary">
+            Items: {rows.length} | Qty: {totalQty}
+            {totalAmount > 0 && (
+              <strong style={{ marginLeft: '10px', color: '#15803d' }}>
+                | Total: ₹{totalAmount.toFixed(2)}
+              </strong>
+            )}
+          </span>
         </div>
 
         {rows.length === 0 ? (
@@ -393,29 +403,40 @@ export default function NewIndentModal({
                 <th className="indent-modal-cell-left">Size</th>
                 <th className="indent-modal-cell-left">Unit</th>
                 <th className="indent-modal-cell-right">Qty</th>
+                <th className="indent-modal-cell-right">Price</th>
+                <th className="indent-modal-cell-right">Amount</th>
                 <th></th>
               </tr>
             </thead>
             <tbody>
-              {rows.map(row => (
-                <tr key={row.id}>
-                  <td className="indent-modal-cell-left">{row.category}</td>
-                  <td className="indent-modal-cell-left">{row.product}</td>
-                  <td className="indent-modal-cell-left">{row.size}</td>
-                  <td className="indent-modal-cell-left">{row.unitName}</td>
-                  <td className="indent-modal-cell-right">{row.qty}</td>
-                  <td className="indent-modal-cell-left">
-                    <button
-                      onClick={() => handleDeleteRow(row.id)}
-                      className="indent-modal-delete-btn"
-                      title="Delete"
-                      aria-label="Delete item"
-                    >
-                      🗑
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {rows.map(row => {
+                const lineTotal = row.qty * (row.price ?? 0);
+                return (
+                  <tr key={row.id}>
+                    <td className="indent-modal-cell-left">{row.category}</td>
+                    <td className="indent-modal-cell-left">{row.product}</td>
+                    <td className="indent-modal-cell-left">{row.size}</td>
+                    <td className="indent-modal-cell-left">{row.unitName}</td>
+                    <td className="indent-modal-cell-right">{row.qty}</td>
+                    <td className="indent-modal-cell-right" style={{ color: '#1e40af' }}>
+                      {row.price != null ? `₹${row.price.toFixed(2)}` : '—'}
+                    </td>
+                    <td className="indent-modal-cell-right" style={{ fontWeight: 600, color: '#15803d' }}>
+                      {row.price != null ? `₹${lineTotal.toFixed(2)}` : '—'}
+                    </td>
+                    <td className="indent-modal-cell-left">
+                      <button
+                        onClick={() => handleDeleteRow(row.id)}
+                        className="indent-modal-delete-btn"
+                        title="Delete"
+                        aria-label="Delete item"
+                      >
+                        🗑
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}
