@@ -146,11 +146,25 @@ export default function DashboardPage() {
           </div>
         ) : isAgentRole(agent) ? (
           <div className="welcome-card">
-            <h3>Welcome {welcomeNameFromDb(agent, profile)}</h3>
-            <p>Credit Limit : ₹ {agent?.creditLimit ?? '0'}</p>
-            <p>Outstanding : ₹ {agent?.outstanding ?? '0'}</p>
-            <p>Credit Balance : ₹ {agent?.balance ?? '0'}</p>
-          </div>
+  <h3>Welcome Back, {welcomeNameFromDb(agent, profile)} !</h3>
+
+  <div className="credit-box-row">
+    <div className="credit-box">
+      <div className="label">Credit Limit :</div>
+      <div className="value">₹{agent?.creditLimit ?? '0'}</div>
+    </div>
+
+    <div className="credit-box">
+      <div className="label">Outstanding :</div>
+      <div className="value">₹{agent?.outstanding ?? '0'}</div>
+    </div>
+
+    <div className="credit-box">
+      <div className="label">Credit Balance :</div>
+      <div className="value">₹{agent?.balance ?? '0'}</div>
+    </div>
+  </div>
+</div>
         ) : (
           <h2 className="dashboard-welcome-heading">Welcome {welcomeNameFromDb(agent, profile)}</h2>
         )}
@@ -196,17 +210,21 @@ export default function DashboardPage() {
                         <span className="menu-card-icon" aria-hidden>🧾</span>
                         <p>Invoice</p>
                       </Link>
-                      <Link href="/orders" className="menu-card">
+                      {/* <Link href="/orders" className="menu-card">
                         <span className="menu-card-icon" aria-hidden>📦</span>
                         <p>Orders</p>
-                      </Link>
+                      </Link> */}
                       <Link href="/catalog" className="menu-card">
                         <span className="menu-card-icon" aria-hidden>📚</span>
                         <p>Catalog</p>
                       </Link>
                       <Link href="/help" className="menu-card">
                         <span className="menu-card-icon" aria-hidden>❓</span>
-                        <p>Help</p>
+                        <p>Help & Support</p>
+                      </Link>
+                      <Link href="/delivery-challan" className="menu-card">
+                        <span className="menu-card-icon" aria-hidden>🚚</span>
+                        <p>Delivery Challan</p>
                       </Link>
                     </>
                   );
