@@ -653,6 +653,49 @@ button:disabled {
   margin: 0 6px;
   font-size: 18px;
 }
+.dc-header {
+  text-align: center;
+  margin-top: 10px;
+}
+.dc-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start; 
+  margin-top: 10px;
+}
+
+.dc-left {
+  text-align: left;
+}
+
+.dc-right {
+  text-align: right;
+}
+
+.dc-center {
+  text-align: center;
+  margin-top: 8px;
+}
+
+.dc-table-scroll {
+  overflow-x: auto;
+  margin-top: 15px;
+  width: 100%;
+}
+
+.dc-table {
+  border-collapse: collapse;
+  min-width: 900px;   /* 🔥 bigger so columns don’t crush */
+  font-size: 13px;
+}
+
+.dc-table th,
+.dc-table td {
+  border: 1px solid black;
+  padding: 6px 8px;
+  text-align: center;
+  white-space: nowrap;   /* 🔥 prevents text breaking */
+}
 
 .welcome-card {
   background: #3b82f6;

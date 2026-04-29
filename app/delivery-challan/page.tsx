@@ -8,8 +8,10 @@ import { useAuth } from '@/components/AuthProvider';
 import DcManager from '@/components/DcManager';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import DcFullScreen from '@/components/DcFullScreen';
 
 const validStatuses = ['Draft', 'In Progress', 'Security Check', 'Dispatched', 'Delivered'];
+
 const statusTabs = [
   { label: 'All', value: '' },
   { label: 'Draft', value: 'Draft' },
@@ -25,6 +27,7 @@ export default function DeliveryChallanPage() {
 
   const roleCode = (agent?.role as any)?.code?.toUpperCase() || "";
   const isSecurity = roleCode === 'SEC' || roleCode === 'SECURITY';
+  const isLogistics = ['DS', 'SEC', 'SUP'].includes(roleCode);
 
   const myTabs = isSecurity ? [
     { label: 'All', value: '' },
@@ -42,27 +45,34 @@ export default function DeliveryChallanPage() {
       <div className="dashboard-container">
         <Header />
         <main className="page-shell">
-          <p className="module-back-nav">
-            <Link href="/dashboard">← Dashboard</Link>
-          </p>
-          <div className="indents-header-row">
-            <h1 className="page-title">{activeTabLabel} Delivery Challans</h1>
-          </div>
-          
-          <nav className="indent-status-tabs" aria-label="DC status tabs">
-            {myTabs.map((tab) => (
-              <Link
-                key={tab.value}
-                href={`/delivery-challan${tab.value ? `?status=${tab.value}` : ''}`}
-                className={`indent-status-tab${statusParam === tab.value ? ' active' : ''}`}
-              >
-                {tab.label}
-              </Link>
-            ))}
-          </nav>
+  {isLogistics ? (
+    <>
+      <p className="module-back-nav">
+        <Link href="/dashboard">← Dashboard</Link>
+      </p>
 
-          <DcManager status={statusParam} />
-        </main>
+      <div className="indents-header-row">
+        <h1 className="page-title">{activeTabLabel} Delivery Challans</h1>
+      </div>
+
+      <nav className="indent-status-tabs">
+        {myTabs.map((tab) => (
+          <Link
+            key={tab.value}
+            href={`/delivery-challan${tab.value ? `?status=${tab.value}` : ''}`}
+            className={`indent-status-tab ${statusParam === tab.value ? 'active' : ''}`}
+          >
+            {tab.label}
+          </Link>
+        ))}
+      </nav>
+
+      <DcManager status={statusParam} />
+    </>
+  ) : (
+    <DcFullScreen />
+  )}
+</main>
         <Footer />
       </div>
     </ProtectedPage>
