@@ -425,7 +425,7 @@ export default function NewIndentModal({
                 }
               }}
               className={`indent-modal-control ${error.size ? 'indent-modal-control-error' : ''}`}
-              disabled={!selectedProduct}
+              disabled={true}
             >
               <option value="">Select size</option>
               {sizeOptions.map((size) => (
@@ -440,6 +440,7 @@ export default function NewIndentModal({
               value={selectedUnit}
               onChange={e => { setSelectedUnit(e.target.value); setError(err => ({...err, unit: false})); }}
               className={`indent-modal-control ${error.unit ? 'indent-modal-control-error' : ''}`}
+              disabled={true}
             >
               <option value="">Select unit</option>
               {units.map(u => <option key={u._id} value={u._id}>{u.name}</option>)}
