@@ -436,6 +436,7 @@ type RawProduct = {
   categoryId?: string;
   size?: string;
   category?: { _id?: string };
+  packingConfig?: any;
 };
 
 function getAuthToken(): string | null {
@@ -979,7 +980,13 @@ export async function fetchProductsApi(): Promise<Product[]> {
     const categoryId = item.categoryId ?? item.category?._id ?? '';
     const name = item.name ?? '';
     if (!id || !categoryId || !name) return acc;
-    acc.push({ id, categoryId, name, size: item.size ?? '' });
+    acc.push({ 
+      id, 
+      categoryId, 
+      name, 
+      size: item.size ?? '',
+      packingConfig: item.packingConfig 
+    });
     return acc;
   }, [] as Product[]);
 

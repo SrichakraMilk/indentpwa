@@ -303,9 +303,33 @@ export default function NewIndentModal({
   return (
     <div className="indent-modal-overlay">
       <div className="indent-modal-card">
-        <div className="indent-modal-header">
-          <h2 className="indent-modal-title">Create Indent</h2>
-          <p className="indent-modal-subtitle">Select category, product, size, and quantity, then add to cart.</p>
+        <div className="indent-modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div>
+            <h2 className="indent-modal-title">Create Indent</h2>
+            <p className="indent-modal-subtitle">Select category, product, size, and quantity, then add to cart.</p>
+          </div>
+          <button 
+            type="button"
+            onClick={onClose} 
+            style={{ 
+              background: 'transparent', 
+              border: 'none', 
+              cursor: 'pointer', 
+              color: '#64748b', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              width: '32px', 
+              height: '32px',
+              padding: 0
+            }}
+            aria-label="Close modal"
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
         </div>
 
         <div className="indent-modal-grid">
@@ -351,6 +375,14 @@ export default function NewIndentModal({
                   const autoSize = sizesForNewProduct[0];
                   setSelectedSize(autoSize);
                   const pc = getPackingConfig(newProduct, autoSize);
+                  if (pc?.sellingUnit?._id) {
+                    setSelectedUnit(pc.sellingUnit._id);
+                  } else {
+                    setSelectedUnit('');
+                  }
+                } else if (sizesForNewProduct.length === 0) {
+                  setSelectedSize('');
+                  const pc = getPackingConfig(newProduct, '');
                   if (pc?.sellingUnit?._id) {
                     setSelectedUnit(pc.sellingUnit._id);
                   } else {
