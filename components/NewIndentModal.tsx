@@ -192,7 +192,7 @@ export default function NewIndentModal({
         : null);
 
   const totalQty = rows.reduce((sum, row) => sum + row.qty, 0);
-  const totalAmount = rows.reduce((sum, row) => sum + row.qty * (row.price ?? 0), 0);
+  const totalAmount = rows.reduce((sum, row) => sum + row.qty * (row.qtyPerUnit ?? 1) * (row.price ?? 0), 0);
 
   const handleAddRow = () => {
     const err = {
@@ -466,7 +466,7 @@ export default function NewIndentModal({
             )}
             {selectedProduct && qty && Number(qty) > 0 && getAgentPriceForName(selectedProduct) != null && (
               <span style={{ fontSize: '12px', color: '#15803d', marginTop: '2px', display: 'block', fontWeight: 600 }}>
-                💵 Line Total: ₹{(Number(qty) * (getAgentPriceForName(selectedProduct) ?? 0)).toFixed(2)}
+                💵 Line Total: ₹{(Number(qty) * (currentPackingConfig?.qtyPerUnit ?? 1) * (getAgentPriceForName(selectedProduct) ?? 0)).toFixed(2)}
               </span>
             )}
           </label>
@@ -517,7 +517,7 @@ export default function NewIndentModal({
             </thead>
             <tbody>
               {rows.map(row => {
-                const lineTotal = row.qty * (row.price ?? 0);
+                const lineTotal = row.qty * (row.qtyPerUnit ?? 1) * (row.price ?? 0);
                 return (
                   <tr key={row.id}>
                     <td className="indent-modal-cell-left">{row.category}</td>
@@ -533,7 +533,17 @@ export default function NewIndentModal({
                       )}
                     </td>
                     <td className="indent-modal-cell-right" style={{ color: '#1e40af' }}>
-                      {row.price != null ? `₹${row.price.toFixed(2)}` : '—'}
+                      {row.price != null ? (
+                        row.qtyPerUnit && row.qtyPerUnit > 1 ? (
+                          <div style={{ lineHeight: '1.2' }}>
+                            <span style={{ fontSize: '0.85em', color: '#64748b' }}>₹{row.price.toFixed(2)} × {row.qtyPerUnit}</span>
+                            <br />
+                            <span>= ₹{(row.price * row.qtyPerUnit).toFixed(2)}</span>
+                          </div>
+                        ) : (
+                          `₹${row.price.toFixed(2)}`
+                        )
+                      ) : '—'}
                     </td>
                     <td className="indent-modal-cell-right" style={{ fontWeight: 600, color: '#15803d' }}>
                       {row.price != null ? `₹${lineTotal.toFixed(2)}` : '—'}
