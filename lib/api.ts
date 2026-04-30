@@ -201,6 +201,9 @@ export interface IndentItem {
   quantity?: number;
   unitId?: string;
   unitName?: string;
+  price?: number;
+  amount?: number;
+  qtyPerUnit?: number;
 }
 
 function mongoIdString(v: unknown): string | undefined {
@@ -314,6 +317,9 @@ function normalizeIndentItem(raw: unknown): IndentItem {
   const quantity = typeof item.quantity === 'number' ? item.quantity : qty;
 
   const size = typeof item.size === 'string' ? item.size : undefined;
+  const price = typeof item.price === 'number' ? item.price : undefined;
+  const amount = typeof item.amount === 'number' ? item.amount : undefined;
+  const qtyPerUnit = typeof item.qtyPerUnit === 'number' ? item.qtyPerUnit : undefined;
 
   return {
     categoryId,
@@ -323,6 +329,9 @@ function normalizeIndentItem(raw: unknown): IndentItem {
     size,
     qty,
     quantity,
+    price,
+    amount,
+    qtyPerUnit,
     unitId: (typeof item.unitId === 'string' && item.unitId.trim()) || unitRefToLabelAndId(item.unit).id || undefined,
     unitName: (typeof item.unitName === 'string' && item.unitName.trim()) || unitRefToLabelAndId(item.unit).label || undefined
   };

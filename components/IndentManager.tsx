@@ -413,21 +413,51 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
 
             <h4>Items</h4>
             {selectedIndent.items?.length ? (
-              <ul className="indent-details-items">
-                {selectedIndent.items.map((item, idx) => {
-                  const qty = item.quantity ?? item.qty;
-                  return (
-                    <li key={`${selectedIndent._id}-${idx}`}>
-                      <span>
-                        {item.productName || item.productId || 'Unknown product'}
-                        {item.size ? ` · ${item.size}` : ''}
-                        {item.unitName ? ` · ${item.unitName}` : ''}
-                      </span>
-                      <span>{qty}</span>
-                    </li>
-                  );
-                })}
-              </ul>
+              <div style={{ overflowX: 'auto', marginTop: '10px' }}>
+                <table className="indent-modal-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+                  <thead>
+                    <tr className="indent-modal-table-header-row" style={{ borderBottom: '1px solid #e2e8f0', textAlign: 'left', color: '#64748b' }}>
+                      <th style={{ padding: '8px' }}>Category</th>
+                      <th style={{ padding: '8px' }}>Product</th>
+                      <th style={{ padding: '8px' }}>Size</th>
+                      <th style={{ padding: '8px' }}>Unit</th>
+                      <th style={{ padding: '8px', textAlign: 'right' }}>Qty</th>
+                      <th style={{ padding: '8px', textAlign: 'right' }}>Price</th>
+                      <th style={{ padding: '8px', textAlign: 'right' }}>Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {selectedIndent.items.map((item, idx) => {
+                      const qty = item.quantity ?? item.qty ?? 0;
+                      const price = item.price ?? 0;
+                      const qtyPerUnit = item.qtyPerUnit ?? 1;
+                      const amount = item.amount ?? (qty * qtyPerUnit * price);
+                      return (
+                        <tr key={`${selectedIndent._id}-${idx}`} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                          <td style={{ padding: '8px' }}>{item.categoryName || '-'}</td>
+                          <td style={{ padding: '8px', fontWeight: 500 }}>{item.productName || item.productId || 'Unknown'}</td>
+                          <td style={{ padding: '8px' }}>{item.size || '-'}</td>
+                          <td style={{ padding: '8px' }}>{item.unitName || '-'}</td>
+                          <td style={{ padding: '8px', textAlign: 'right' }}>{qty}</td>
+                          <td style={{ padding: '8px', textAlign: 'right' }}>
+                            {price > 0 ? (
+                              qtyPerUnit > 1 ? (
+                                <div style={{ fontSize: '0.85em', color: '#64748b', lineHeight: '1.2' }}>
+                                  ₹{price.toFixed(2)} × {qtyPerUnit}
+                                  <br /><span style={{ color: '#0f172a' }}>= ₹{(price * qtyPerUnit).toFixed(2)}</span>
+                                </div>
+                              ) : `₹${price.toFixed(2)}`
+                            ) : '-'}
+                          </td>
+                          <td style={{ padding: '8px', textAlign: 'right', fontWeight: 600, color: '#15803d' }}>
+                            {amount > 0 ? `₹${amount.toFixed(2)}` : '-'}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             ) : (
               <p>No items available.</p>
             )}

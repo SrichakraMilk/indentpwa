@@ -261,7 +261,10 @@ export default function NewIndentModal({
         product: row.productId,
         quantity: row.qty,
         size: row.size.trim() || undefined,
-        unit: row.unitId || undefined
+        unit: row.unitId || undefined,
+        price: row.price || 0,
+        qtyPerUnit: row.qtyPerUnit || 1,
+        amount: row.qty * (row.qtyPerUnit || 1) * (row.price || 0)
       }));
 
       if (initialData) {
