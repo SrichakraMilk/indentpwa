@@ -39,7 +39,7 @@ export default function CatalogPage() {
       setLoading(true);
       setError(null);
       try {
-        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
 
         const [prodRes] = await Promise.all([
           fetch('/api/products', { headers, cache: 'no-store' }),
