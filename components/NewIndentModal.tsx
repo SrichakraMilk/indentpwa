@@ -333,9 +333,33 @@ export default function NewIndentModal({
             <select
               value={selectedProduct}
               onChange={e => {
-                setSelectedProduct(e.target.value);
-                setSelectedSize('');
+                const newProduct = e.target.value;
+                setSelectedProduct(newProduct);
                 setError(err => ({...err, prod: false}));
+                
+                // Auto-select size and unit if there's exactly 1 size option
+                const sizesForNewProduct = Array.from(
+                  new Set(
+                    filteredProductsInCategory
+                      .filter((p) => p.name === newProduct)
+                      .map((p) => (p.size ?? '').trim())
+                      .filter(Boolean)
+                  )
+                ).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+
+                if (sizesForNewProduct.length === 1) {
+                  const autoSize = sizesForNewProduct[0];
+                  setSelectedSize(autoSize);
+                  const pc = getPackingConfig(newProduct, autoSize);
+                  if (pc?.sellingUnit?._id) {
+                    setSelectedUnit(pc.sellingUnit._id);
+                  } else {
+                    setSelectedUnit('');
+                  }
+                } else {
+                  setSelectedSize('');
+                  setSelectedUnit('');
+                }
               }}
               className={`indent-modal-control ${error.prod ? 'indent-modal-control-error' : ''}`}
               disabled={!selectedCategory}
@@ -406,6 +430,11 @@ export default function NewIndentModal({
                 {qty && Number(qty) > 0 && currentPackingConfig?.qtyPerUnit
                   ? ` → ${Number(qty)} × ${currentPackingConfig.qtyPerUnit} = ${(Number(qty) * currentPackingConfig.qtyPerUnit).toFixed(currentPackingConfig.qtyPerUnit % 1 === 0 ? 0 : 2)} ${currentPackingConfig.baseUnit ?? ''}`
                   : ''}
+              </span>
+            )}
+            {selectedProduct && qty && Number(qty) > 0 && getAgentPriceForName(selectedProduct) != null && (
+              <span style={{ fontSize: '12px', color: '#15803d', marginTop: '2px', display: 'block', fontWeight: 600 }}>
+                💵 Line Total: ₹{(Number(qty) * (getAgentPriceForName(selectedProduct) ?? 0)).toFixed(2)}
               </span>
             )}
           </label>
