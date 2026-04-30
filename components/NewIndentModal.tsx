@@ -198,12 +198,11 @@ export default function NewIndentModal({
     const err = {
       cat: !selectedCategory,
       prod: !selectedProduct,
-      size: !selectedSize,
       unit: !selectedUnit,
       qty: !qty || isNaN(Number(qty)) || Number(qty) <= 0,
     };
     setError(err);
-    if (err.cat || err.prod || err.size || err.unit || err.qty) return;
+    if (err.cat || err.prod || err.unit || err.qty) return;
 
     const resolvedProduct = filteredProductsInCategory.find(
       (p) => p.name === selectedProduct && (p.size ?? '').trim() === selectedSize
@@ -408,44 +407,12 @@ export default function NewIndentModal({
             </select>
           </label>
 
-          <label className="indent-modal-label">
-            Size
-            <select
-              value={selectedSize}
-              onChange={e => {
-                const newSize = e.target.value;
-                setSelectedSize(newSize);
-                setError(err => ({...err, size: false}));
-                // Auto-select selling unit from packingConfig
-                if (newSize && selectedProduct) {
-                  const pc = getPackingConfig(selectedProduct, newSize);
-                  if (pc?.sellingUnit?._id) {
-                    setSelectedUnit(pc.sellingUnit._id);
-                  }
-                }
-              }}
-              className={`indent-modal-control ${error.size ? 'indent-modal-control-error' : ''}`}
-              disabled={true}
-            >
-              <option value="">Select size</option>
-              {sizeOptions.map((size) => (
-                <option key={size} value={size}>{size}</option>
-              ))}
-            </select>
-          </label>
-
-          <label className="indent-modal-label">
-            Unit
-            <select
-              value={selectedUnit}
-              onChange={e => { setSelectedUnit(e.target.value); setError(err => ({...err, unit: false})); }}
-              className={`indent-modal-control ${error.unit ? 'indent-modal-control-error' : ''}`}
-              disabled={true}
-            >
-              <option value="">Select unit</option>
-              {units.map(u => <option key={u._id} value={u._id}>{u.name}</option>)}
-            </select>
-          </label>
+          {selectedProduct && (
+            <div style={{ gridColumn: '1 / -1', padding: '12px 16px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', display: 'flex', gap: '2rem', fontSize: '0.9rem', color: '#334155' }}>
+              <div><span style={{ color: '#64748b' }}>Size:</span> <strong style={{ color: '#0f172a' }}>{selectedSize || 'N/A'}</strong></div>
+              <div><span style={{ color: '#64748b' }}>Unit:</span> <strong style={{ color: '#0f172a' }}>{selectedUnit ? units.find(u => u._id === selectedUnit)?.name : 'N/A'}</strong></div>
+            </div>
+          )}
 
           <label className="indent-modal-label">
             Qty
