@@ -12,7 +12,9 @@ interface IndentRow {
   qty: number;
   unitId: string;
   unitName: string;
-  price?: number;  // agent price per unit
+  price?: number;
+  qtyPerUnit?: number;   // from packingConfig — for breakdown display
+  baseUnit?: string;     // from packingConfig — e.g. "Packet"
 }
 
 export interface IndentEditData {
@@ -163,6 +165,14 @@ export default function NewIndentModal({
     return match ? priceMap.get(match.id) : undefined;
   };
 
+  // Helper: get packingConfig for currently selected product+size
+  const getPackingConfig = (productName: string, size: string) => {
+    const match = filteredProductsInCategory.find(
+      p => p.name === productName && (p.size ?? '').trim() === size
+    );
+    return match?.packingConfig ?? null;
+  };
+
   const sizeOptions = Array.from(
     new Set(
       filteredProductsInCategory
@@ -171,6 +181,16 @@ export default function NewIndentModal({
         .filter(Boolean)
     )
   ).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+
+  // Packing hint string for the currently selected product+size
+  const currentPackingConfig = selectedProduct && selectedSize
+    ? getPackingConfig(selectedProduct, selectedSize)
+    : null;
+  const packingHint = currentPackingConfig?.conversionLabel
+    || (currentPackingConfig?.qtyPerUnit && currentPackingConfig?.baseUnit
+        ? `1 ${currentPackingConfig?.sellingUnit?.name ?? 'unit'} = ${currentPackingConfig.qtyPerUnit} ${currentPackingConfig.baseUnit}`
+        : null);
+
   const totalQty = rows.reduce((sum, row) => sum + row.qty, 0);
   const totalAmount = rows.reduce((sum, row) => sum + row.qty * (row.price ?? 0), 0);
 
@@ -190,6 +210,11 @@ export default function NewIndentModal({
     );
     if (!resolvedProduct) return;
 
+    // Auto-detect selling unit from packingConfig
+    const pc = resolvedProduct.packingConfig;
+    const autoUnitId = pc?.sellingUnit?._id ?? selectedUnit;
+    const autoUnitName = pc?.sellingUnit?.name ?? units.find(u => u._id === selectedUnit)?.name ?? '';
+
     setRows([
       ...rows,
       {
@@ -200,9 +225,11 @@ export default function NewIndentModal({
         product: resolvedProduct.name,
         size: selectedSize,
         qty: Number(qty),
-        unitId: selectedUnit,
-        unitName: units.find(u => u._id === selectedUnit)?.name || '',
-        price: priceMap.get(resolvedProduct.id)
+        unitId: autoUnitId,
+        unitName: autoUnitName,
+        price: priceMap.get(resolvedProduct.id),
+        qtyPerUnit: pc?.qtyPerUnit,
+        baseUnit: pc?.baseUnit,
       },
     ]);
     setQty('');
@@ -329,7 +356,18 @@ export default function NewIndentModal({
             Size
             <select
               value={selectedSize}
-              onChange={e => { setSelectedSize(e.target.value); setError(err => ({...err, size: false})); }}
+              onChange={e => {
+                const newSize = e.target.value;
+                setSelectedSize(newSize);
+                setError(err => ({...err, size: false}));
+                // Auto-select selling unit from packingConfig
+                if (newSize && selectedProduct) {
+                  const pc = getPackingConfig(selectedProduct, newSize);
+                  if (pc?.sellingUnit?._id) {
+                    setSelectedUnit(pc.sellingUnit._id);
+                  }
+                }
+              }}
               className={`indent-modal-control ${error.size ? 'indent-modal-control-error' : ''}`}
               disabled={!selectedProduct}
             >
@@ -362,6 +400,14 @@ export default function NewIndentModal({
               onChange={e => { setQty(e.target.value); setError(err => ({...err, qty: false})); }}
               className={`indent-modal-control ${error.qty ? 'indent-modal-control-error' : ''}`}
             />
+            {packingHint && (
+              <span style={{ fontSize: '11px', color: '#6366f1', marginTop: '2px', display: 'block' }}>
+                📦 {packingHint}
+                {qty && Number(qty) > 0 && currentPackingConfig?.qtyPerUnit
+                  ? ` → ${Number(qty)} × ${currentPackingConfig.qtyPerUnit} = ${(Number(qty) * currentPackingConfig.qtyPerUnit).toFixed(currentPackingConfig.qtyPerUnit % 1 === 0 ? 0 : 2)} ${currentPackingConfig.baseUnit ?? ''}`
+                  : ''}
+              </span>
+            )}
           </label>
         </div>
 
@@ -417,7 +463,14 @@ export default function NewIndentModal({
                     <td className="indent-modal-cell-left">{row.product}</td>
                     <td className="indent-modal-cell-left">{row.size}</td>
                     <td className="indent-modal-cell-left">{row.unitName}</td>
-                    <td className="indent-modal-cell-right">{row.qty}</td>
+                    <td className="indent-modal-cell-right">
+                      {row.qty}
+                      {row.qtyPerUnit && row.baseUnit && (
+                        <div style={{ fontSize: '10px', color: '#6366f1', marginTop: '1px' }}>
+                          = {(row.qty * row.qtyPerUnit).toFixed(row.qtyPerUnit % 1 === 0 ? 0 : 2)} {row.baseUnit}
+                        </div>
+                      )}
+                    </td>
                     <td className="indent-modal-cell-right" style={{ color: '#1e40af' }}>
                       {row.price != null ? `₹${row.price.toFixed(2)}` : '—'}
                     </td>

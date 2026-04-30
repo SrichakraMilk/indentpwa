@@ -386,6 +386,13 @@ export interface Product {
   name: string;
   categoryId: string;
   size: string;
+  price?: number;
+  packingConfig?: {
+    sellingUnit?: { _id: string; name: string; code: string } | null;
+    qtyPerUnit?: number;
+    baseUnit?: string;
+    conversionLabel?: string;
+  };
 }
 
 export interface Unit {
