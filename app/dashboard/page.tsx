@@ -258,12 +258,10 @@ export default function DashboardPage() {
                       <span className="menu-card-icon" aria-hidden>📚</span>
                       <p>Catalog</p>
                     </Link>
-                    {isAccounts && (
-                      <Link href="/delivery-challan" className="menu-card">
-                        <span className="menu-card-icon" aria-hidden>🚚</span>
-                        <p>Delivery Challan</p>
-                      </Link>
-                    )}
+                    <Link href="/delivery-challan" className="menu-card">
+  <span className="menu-card-icon" aria-hidden>🚚</span>
+  <p>Delivery Challan</p>
+</Link>
                   </>
                 );
               })()}

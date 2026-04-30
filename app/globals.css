@@ -46,13 +46,13 @@
 .header-menu {
   position: fixed;
   top: 0;
-  left: 0;
+  right: 0;
   height: 100vh;
   width: 260px;
   background: #fff;
   box-shadow: -2px 0 16px rgba(0,0,0,0.08);
   z-index: 1000;
-  transform: translateX(-100%);
+  transform: translateX(100%);
   transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
   padding: 2rem 1.5rem;
   display: flex;
@@ -103,7 +103,7 @@
 }
 .menu-toggle-btn {
   font-size: 1.6rem;
-  margin-right: 2.5rem;
+  margin-right: 3px;
 }
 .menu-close-btn {
   position: absolute;
@@ -684,9 +684,9 @@ button:disabled {
 }
 
 .dc-table {
-  border-collapse: collapse;
-  min-width: 900px;   /* 🔥 bigger so columns don’t crush */
+  border-collapse: collapse;   /* 🔥 bigger so columns don’t crush */
   font-size: 13px;
+  width: auto;
 }
 
 .dc-table th,
@@ -1174,4 +1174,70 @@ button:disabled {
 .bottom-nav a.active {
   color: #007bff;
   font-weight: 600;
+}
+
+@media print {
+
+  /* ❌ Hide unwanted UI */
+  button,
+  .dc-table-scroll + div,
+  .header,
+  .footer,
+  .menu,
+  nav,
+  .bottom-nav,
+  .dc-right {
+    display: none !important;
+  }
+
+  /* ✅ Full page clean */
+  body {
+    margin: 0;
+    padding: 0;
+    background: white;
+  }
+
+  /* ✅ Center content */
+  .dc-header {
+    text-align: center;
+  }
+
+  /* ✅ Table styling */
+  .dc-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+
+  .dc-table th,
+  .dc-table td {
+    border: 1px solid black;
+    padding: 6px;
+    text-align: center;
+  }
+
+  /* ✅ Bold headers */
+  .dc-table th {
+    font-weight: bold;
+  }
+
+  /* ✅ Remove grey fade */
+  * {
+    color: black !important;
+    background: white !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+   .dc-header h3 {
+    font-size: 16px;
+    margin-bottom: 4px;
+  }
+
+  .dc-header p {
+    margin: 2px 0;
+  }
+
 }

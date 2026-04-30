@@ -43,7 +43,27 @@ export default function Header() {
 
   return (
     <div className="dashboard-header">
-       {/* LEFT: Menu */}
+       {/* LEFT: Refresh */}
+       <button 
+        className="icon-btn"
+        onClick={() => router.refresh()}
+      >
+        🔄
+      </button>
+      
+      {/* CENTER: Logo + Text */}
+      <div className="header-center">
+        <Image 
+          src="/icons/Ssmp-Logo.png" 
+          alt="App logo" 
+          width={170} 
+          height={40}
+          className="no-print"  
+        />
+        
+      </div>
+
+      {/* RIGHT: Menu */}
       <button 
         className="icon-btn menu-toggle-btn"
         onClick={() => setMenuOpen((open) => !open)}
@@ -51,24 +71,7 @@ export default function Header() {
         ☰
       </button>
 
-      {/* CENTER: Logo + Text */}
-      <div className="header-center">
-        <Image 
-          src="/icons/Ssmp-Logo.png" 
-          alt="App logo" 
-          width={170} 
-          height={40} 
-        />
-        
-      </div>
-
-      {/* RIGHT: Refresh */}
-      <button 
-        className="icon-btn"
-        onClick={() => router.refresh()}
-      >
-        🔄
-      </button>
+      
       <nav ref={menuRef} className={`header-menu ${menuOpen ? 'open' : ''}`}>
       
       <button
