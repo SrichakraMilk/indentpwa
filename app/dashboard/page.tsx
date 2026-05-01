@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import ProtectedPage from '@/components/ProtectedPage';
+import { Truck, ClipboardList, CreditCard, Receipt, BookOpen, HelpCircle, Map as MapIcon, Users } from 'lucide-react';
 
 import { fetchCurrentAgent, AgentDetails, fetchIndentsApi, IndentRecord } from '@/lib/api';
 import { useAuth } from '@/components/AuthProvider';
@@ -188,7 +189,7 @@ export default function DashboardPage() {
                 if (isLogistics) {
                   return (
                     <Link href="/delivery-challan" className="menu-card">
-                      <span className="menu-card-icon" aria-hidden>🚚</span>
+                      <span className="menu-card-icon" aria-hidden><Truck size={36} strokeWidth={1.5} /></span>
                       <p>Delivery Challan</p>
                     </Link>
                   );
@@ -198,16 +199,16 @@ export default function DashboardPage() {
                   return (
                     <>
                       <Link href="/indent" className="menu-card">
-                        <span className="menu-card-icon" aria-hidden>📋</span>
+                        {stats.pending > 0 && <span className="menu-card-badge">{stats.pending}</span>}
+                        <span className="menu-card-icon" aria-hidden><ClipboardList size={36} strokeWidth={1.5} /></span>
                         <p>Indent</p>
-                        <span>{stats.pending}</span>
                       </Link>
                       <Link href="/payments" className="menu-card">
-                        <span className="menu-card-icon" aria-hidden>💳</span>
+                        <span className="menu-card-icon" aria-hidden><CreditCard size={36} strokeWidth={1.5} /></span>
                         <p>Payments</p>
                       </Link>
                       <Link href="/invoice" className="menu-card">
-                        <span className="menu-card-icon" aria-hidden>🧾</span>
+                        <span className="menu-card-icon" aria-hidden><Receipt size={36} strokeWidth={1.5} /></span>
                         <p>Invoice</p>
                       </Link>
                       {/* <Link href="/orders" className="menu-card">
@@ -215,15 +216,15 @@ export default function DashboardPage() {
                         <p>Orders</p>
                       </Link> */}
                       <Link href="/catalog" className="menu-card">
-                        <span className="menu-card-icon" aria-hidden>📚</span>
+                        <span className="menu-card-icon" aria-hidden><BookOpen size={36} strokeWidth={1.5} /></span>
                         <p>Catalog</p>
                       </Link>
                       <Link href="/help" className="menu-card">
-                        <span className="menu-card-icon" aria-hidden>❓</span>
+                        <span className="menu-card-icon" aria-hidden><HelpCircle size={36} strokeWidth={1.5} /></span>
                         <p>Help & Support</p>
                       </Link>
                       <Link href="/delivery-challan" className="menu-card">
-                        <span className="menu-card-icon" aria-hidden>🚚</span>
+                        <span className="menu-card-icon" aria-hidden><Truck size={36} strokeWidth={1.5} /></span>
                         <p>Delivery Challan</p>
                       </Link>
                     </>
@@ -234,32 +235,32 @@ export default function DashboardPage() {
                 return (
                   <>
                     <Link href="/routes" className="menu-card">
-                      <span className="menu-card-icon" aria-hidden>🗺️</span>
+                      <span className="menu-card-icon" aria-hidden><MapIcon size={36} strokeWidth={1.5} /></span>
                       <p>Routes</p>
                     </Link>
                     <Link href="/agents" className="menu-card">
-                      <span className="menu-card-icon" aria-hidden>👥</span>
+                      <span className="menu-card-icon" aria-hidden><Users size={36} strokeWidth={1.5} /></span>
                       <p>Agents</p>
                     </Link>
                     <Link href="/indent" className="menu-card">
-                      <span className="menu-card-icon" aria-hidden>📋</span>
+                      {stats.pending > 0 && <span className="menu-card-badge">{stats.pending}</span>}
+                      <span className="menu-card-icon" aria-hidden><ClipboardList size={36} strokeWidth={1.5} /></span>
                       <p>Indents</p>
-                      <span>{stats.pending}</span>
                     </Link>
                     <Link href="/payments" className="menu-card">
-                      <span className="menu-card-icon" aria-hidden>💳</span>
+                      <span className="menu-card-icon" aria-hidden><CreditCard size={36} strokeWidth={1.5} /></span>
                       <p>Payments</p>
                     </Link>
                     <Link href="/invoice" className="menu-card">
-                      <span className="menu-card-icon" aria-hidden>🧾</span>
+                      <span className="menu-card-icon" aria-hidden><Receipt size={36} strokeWidth={1.5} /></span>
                       <p>Invoice</p>
                     </Link>
                     <Link href="/catalog" className="menu-card">
-                      <span className="menu-card-icon" aria-hidden>📚</span>
+                      <span className="menu-card-icon" aria-hidden><BookOpen size={36} strokeWidth={1.5} /></span>
                       <p>Catalog</p>
                     </Link>
                     <Link href="/delivery-challan" className="menu-card">
-  <span className="menu-card-icon" aria-hidden>🚚</span>
+  <span className="menu-card-icon" aria-hidden><Truck size={36} strokeWidth={1.5} /></span>
   <p>Delivery Challan</p>
 </Link>
                   </>
