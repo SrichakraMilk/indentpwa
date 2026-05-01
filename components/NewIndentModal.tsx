@@ -194,6 +194,11 @@ export default function NewIndentModal({
   const totalQty = rows.reduce((sum, row) => sum + row.qty, 0);
   const totalAmount = rows.reduce((sum, row) => sum + row.qty * (row.qtyPerUnit ?? 1) * (row.price ?? 0), 0);
 
+  const creditLimit = agent?.creditLimit || 0;
+  const outstanding = agent?.outstanding || 0;
+  const creditBalance = agent?.creditBalance ?? (creditLimit - outstanding);
+  const exceedsCredit = totalAmount > creditBalance;
+
   const handleAddRow = () => {
     const err = {
       cat: !selectedCategory,
@@ -334,6 +339,12 @@ export default function NewIndentModal({
           </button>
         </div>
 
+        <div style={{ padding: '12px 16px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', display: 'flex', flexWrap: 'wrap', gap: '1rem 2rem', fontSize: '0.9rem' }}>
+          <div><span style={{ color: '#64748b' }}>Credit Limit:</span> <strong style={{ color: '#0f172a' }}>₹{creditLimit.toFixed(2)}</strong></div>
+          <div><span style={{ color: '#64748b' }}>Outstanding:</span> <strong style={{ color: '#ef4444' }}>₹{outstanding.toFixed(2)}</strong></div>
+          <div><span style={{ color: '#64748b' }}>Available Balance:</span> <strong style={{ color: creditBalance < 0 ? '#ef4444' : '#15803d' }}>₹{creditBalance.toFixed(2)}</strong></div>
+        </div>
+
         <div className="indent-modal-grid">
           <label className="indent-modal-label">
             Category
@@ -470,6 +481,17 @@ export default function NewIndentModal({
           </span>
         </div>
 
+        {exceedsCredit && rows.length > 0 && (
+          <div style={{ padding: '10px 16px', background: '#fef2f2', borderBottom: '1px solid #fecaca', color: '#b91c1c', fontSize: '0.9rem', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+              <line x1="12" y1="9" x2="12" y2="13"></line>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+            Indent value (₹{totalAmount.toFixed(2)}) exceeds your available Credit Balance (₹{creditBalance.toFixed(2)}). Please reduce your order quantity or contact administration.
+          </div>
+        )}
+
         {rows.length === 0 ? (
           <div className="indent-modal-empty">No items added yet.</div>
         ) : (
@@ -538,10 +560,11 @@ export default function NewIndentModal({
         <div className="indent-modal-footer-actions">
           <button
             onClick={handleCreate}
-            disabled={rows.length === 0 || submitting}
+            disabled={rows.length === 0 || submitting || exceedsCredit}
             className="indent-modal-create-btn"
+            style={exceedsCredit ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
           >
-            {submitting ? 'Creating...' : 'Create'}
+            {submitting ? 'Creating...' : initialData ? 'Update Indent' : 'Create Indent'}
           </button>
           <button onClick={onClose} className="indent-modal-close-btn">Close</button>
         </div>

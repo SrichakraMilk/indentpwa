@@ -28,6 +28,7 @@ export interface AgentDetails {
   agentCode?: string;
   creditLimit?: number;
   outstanding?: number;
+  creditBalance?: number;
   balance?: number;
   address?: string;
   isActive?: boolean;
@@ -602,6 +603,7 @@ function normalizeAgentProfile(data: any): { name: string; email: string; agent?
           agentCode: agent.agentCode,
           creditLimit: agent.creditLimit,
           outstanding: agent.outstanding,
+          creditBalance: agent.creditBalance,
           balance: agent.balance,
           address: agent.address,
           isActive: agent.isActive,
