@@ -161,7 +161,7 @@ export default function DashboardPage() {
 
     <div className="credit-box">
       <div className="label">Credit Balance :</div>
-      <div className="value">₹{agent?.balance ?? '0'}</div>
+      <div className="value">₹{agent?.creditBalance ?? ((agent?.creditLimit || 0) - (agent?.outstanding || 0))}</div>
     </div>
   </div>
 </div>
