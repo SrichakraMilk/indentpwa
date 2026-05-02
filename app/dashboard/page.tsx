@@ -249,14 +249,10 @@ export default function DashboardPage() {
                       <span className="menu-card-icon" aria-hidden><Receipt size={36} strokeWidth={1.5} /></span>
                       <p>Invoice</p>
                     </Link>
-                    <Link href="/catalog" className="menu-card">
-                      <span className="menu-card-icon" aria-hidden><BookOpen size={36} strokeWidth={1.5} /></span>
-                      <p>Catalog</p>
-                    </Link>
                     <Link href="/delivery-challan" className="menu-card">
-  <span className="menu-card-icon" aria-hidden><Truck size={36} strokeWidth={1.5} /></span>
-  <p>Delivery Challan</p>
-</Link>
+                      <span className="menu-card-icon" aria-hidden><Truck size={36} strokeWidth={1.5} /></span>
+                      <p>Delivery Challan</p>
+                    </Link>
                   </>
                 );
               })()}
