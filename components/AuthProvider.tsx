@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react';
 import { login as apiLogin, validateSessionOnBackend } from '@/lib/api';
 
 import type { AgentDetails } from '@/lib/api';
