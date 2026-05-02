@@ -555,6 +555,17 @@ export default function NewIndentModal({
                 );
               })}
             </tbody>
+            <tfoot>
+              <tr style={{ background: '#f1f5f9', fontWeight: 700, borderTop: '2px solid #cbd5e1', color: '#0f172a' }}>
+                <td colSpan={4} className="indent-modal-cell-right" style={{ padding: '12px 8px' }}>Grand Total:</td>
+                <td className="indent-modal-cell-right" style={{ padding: '12px 8px' }}>{totalQty}</td>
+                <td className="indent-modal-cell-right" style={{ padding: '12px 8px' }}></td>
+                <td className="indent-modal-cell-right" style={{ color: '#15803d', padding: '12px 8px' }}>
+                  ₹{totalAmount.toFixed(2)}
+                </td>
+                <td style={{ padding: '12px 8px' }}></td>
+              </tr>
+            </tfoot>
           </table>
         )}
         <div className="indent-modal-footer-actions">

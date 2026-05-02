@@ -413,49 +413,75 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
 
             <h4>Items</h4>
             {selectedIndent.items?.length ? (
-              <ul className="indent-details-items">
-                {selectedIndent.items.map((item, idx) => {
-                  const qty = item.quantity ?? item.qty ?? 0;
-                  const price = item.price ?? 0;
-                  const qtyPerUnit = item.qtyPerUnit ?? 1;
-                  const amount = item.amount ?? (qty * qtyPerUnit * price);
-                  return (
-                    <li key={`${selectedIndent._id}-${idx}`} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <div>
-                          <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>
-                            {item.productName || item.productId || 'Unknown Product'}
-                          </strong>
-                          <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '2px' }}>
-                            {item.categoryName || 'No Category'}
+              <>
+                <ul className="indent-details-items">
+                  {selectedIndent.items.map((item, idx) => {
+                    const qty = item.quantity ?? item.qty ?? 0;
+                    const price = item.price ?? 0;
+                    const qtyPerUnit = item.qtyPerUnit ?? 1;
+                    const amount = item.amount ?? (qty * qtyPerUnit * price);
+                    return (
+                      <li key={`${selectedIndent._id}-${idx}`} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <div>
+                            <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>
+                              {item.productName || item.productId || 'Unknown Product'}
+                            </strong>
+                            <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '2px' }}>
+                              {item.categoryName || 'No Category'}
+                            </div>
+                          </div>
+                          <div style={{ textAlign: 'right' }}>
+                            <span style={{ fontWeight: 600, color: '#15803d', fontSize: '0.95rem' }}>
+                              {amount > 0 ? `₹${amount.toFixed(2)}` : '-'}
+                            </span>
                           </div>
                         </div>
-                        <div style={{ textAlign: 'right' }}>
-                          <span style={{ fontWeight: 600, color: '#15803d', fontSize: '0.95rem' }}>
-                            {amount > 0 ? `₹${amount.toFixed(2)}` : '-'}
-                          </span>
-                        </div>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', fontSize: '0.85rem', color: '#334155', marginTop: '4px' }}>
-                        <div>
-                          <span style={{ fontWeight: 500 }}>Qty: {qty}</span>
-                          {item.unitName && ` ${item.unitName}`}
-                          {item.size && <span style={{ color: '#64748b' }}> | Size: {item.size}</span>}
-                        </div>
-                        {price > 0 && (
-                          <div style={{ textAlign: 'right', color: '#64748b', fontSize: '0.8rem' }}>
-                            {qtyPerUnit > 1 ? (
-                              <>₹{price.toFixed(2)} × {qtyPerUnit} <span style={{ color: '#0f172a', fontWeight: 500 }}>= ₹{(price * qtyPerUnit).toFixed(2)}</span></>
-                            ) : (
-                              <>₹{price.toFixed(2)} / unit</>
-                            )}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', fontSize: '0.85rem', color: '#334155', marginTop: '4px' }}>
+                          <div>
+                            <span style={{ fontWeight: 500 }}>Qty: {qty}</span>
+                            {item.unitName && ` ${item.unitName}`}
+                            {item.size && <span style={{ color: '#64748b' }}> | Size: {item.size}</span>}
                           </div>
-                        )}
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
+                          {price > 0 && (
+                            <div style={{ textAlign: 'right', color: '#64748b', fontSize: '0.8rem' }}>
+                              {qtyPerUnit > 1 ? (
+                                <>₹{price.toFixed(2)} × {qtyPerUnit} <span style={{ color: '#0f172a', fontWeight: 500 }}>= ₹{(price * qtyPerUnit).toFixed(2)}</span></>
+                              ) : (
+                                <>₹{price.toFixed(2)} / unit</>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+                <div style={{
+                  marginTop: '12px',
+                  padding: '12px',
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  fontWeight: 600,
+                  color: '#0f172a'
+                }}>
+                  <span>
+                    Grand Total ({selectedIndent.items.reduce((acc, item) => acc + (item.quantity ?? item.qty ?? 0), 0)} Qty)
+                  </span>
+                  <span style={{ fontSize: '1.1rem', color: '#15803d' }}>
+                    ₹{selectedIndent.items.reduce((acc, item) => {
+                      const qty = item.quantity ?? item.qty ?? 0;
+                      const price = item.price ?? 0;
+                      const qtyPerUnit = item.qtyPerUnit ?? 1;
+                      return acc + (item.amount ?? (qty * qtyPerUnit * price));
+                    }, 0).toFixed(2)}
+                  </span>
+                </div>
+              </>
             ) : (
               <p>No items available.</p>
             )}
