@@ -163,17 +163,32 @@ export default function DcManager({ status, refreshKey }: DcManagerProps) {
                 const totalQty = selectedDc.items?.reduce((sum, i) => sum + (i.quantity || 0), 0) || 0;
                 
                 const totalCrates = selectedDc.items?.reduce((sum, item) => {
-                  const unit = (item.unit?.name || item.unit || '').toLowerCase();
+                  const unitValue =
+  typeof item.unit === 'string'
+    ? item.unit
+    : item.unit?.name || '';
+
+const unit = unitValue.toLowerCase();
                   return unit.includes('crate') ? sum + (item.quantity || 0) : sum;
                 }, 0) || 0;
                 
                 const totalCans = selectedDc.items?.reduce((sum, item) => {
-                  const unit = (item.unit?.name || item.unit || '').toLowerCase();
+                  const unitValue =
+  typeof item.unit === 'string'
+    ? item.unit
+    : item.unit?.name || '';
+
+const unit = unitValue.toLowerCase();
                   return unit.includes('can') ? sum + (item.quantity || 0) : sum;
                 }, 0) || 0;
 
                 const totalBuckets = selectedDc.items?.reduce((sum, item) => {
-                  const unit = (item.unit?.name || item.unit || '').toLowerCase();
+                  const unitValue =
+  typeof item.unit === 'string'
+    ? item.unit
+    : item.unit?.name || '';
+
+const unit = unitValue.toLowerCase();
                   return unit.includes('bucket') ? sum + (item.quantity || 0) : sum;
                 }, 0) || 0;
 
