@@ -113,29 +113,75 @@ export default function DcManager({ status, refreshKey }: DcManagerProps) {
                   <p style={{ margin: '2px 0' }}><strong>Route:</strong> {selectedDc.route.name}</p>
                   <p style={{ margin: '2px 0' }}><strong>Indent:</strong> {selectedDc.indent.indentNumber}</p>
               </div>
-
               <h4>Items</h4>
               <ul className="indent-details-items">
-                {selectedDc.items.map((item, idx) => (
-                  <li key={idx}>
-                    <span>
-                      {item.product.name}
-                      {item.size ? ` · ${item.size}` : ''}
-                    </span>
-                    <span>{item.quantity}</span>
-                  </li>
-                ))}
+                {selectedDc.items.map((item, idx) => {
+                  const qty = item.quantity ?? 0;
+                  const price = item.price ?? 0;
+                  const qtyPerUnit = item.qtyPerUnit ?? 1;
+                  const amount = item.amount ?? (qty * qtyPerUnit * price);
+                  
+                  return (
+                    <li key={`${selectedDc._id}-${idx}`} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div>
+                          <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>
+                            {item.product?.name || 'Unknown Product'}
+                          </strong>
+                          <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '2px' }}>
+                            {item.category?.name || 'No Category'}
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <span style={{ fontWeight: 600, color: '#15803d', fontSize: '0.95rem' }}>
+                            {amount > 0 ? `₹${amount.toFixed(2)}` : '-'}
+                          </span>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', fontSize: '0.85rem', color: '#334155', marginTop: '4px' }}>
+                        <div>
+                          <span style={{ fontWeight: 500 }}>Qty: {qty}</span>
+                          {item.unit?.name && ` ${item.unit?.name}`}
+                          {item.size && <span style={{ color: '#64748b' }}> | Size: {item.size}</span>}
+                        </div>
+                        {price > 0 && (
+                          <div style={{ textAlign: 'right', color: '#64748b', fontSize: '0.8rem' }}>
+                            {qtyPerUnit > 1 ? (
+                              <>₹{price.toFixed(2)} × {qtyPerUnit} <span style={{ color: '#0f172a', fontWeight: 500 }}>= ₹{(price * qtyPerUnit).toFixed(2)}</span></>
+                            ) : (
+                              <>₹{price.toFixed(2)} / unit</>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
 
               {(() => {
                 const totalQty = selectedDc.items?.reduce((sum, i) => sum + (i.quantity || 0), 0) || 0;
+                
                 const totalCrates = selectedDc.items?.reduce((sum, item) => {
                   const unit = (item.unit?.name || item.unit || '').toLowerCase();
                   return unit.includes('crate') ? sum + (item.quantity || 0) : sum;
                 }, 0) || 0;
+                
+                const totalCans = selectedDc.items?.reduce((sum, item) => {
+                  const unit = (item.unit?.name || item.unit || '').toLowerCase();
+                  return unit.includes('can') ? sum + (item.quantity || 0) : sum;
+                }, 0) || 0;
+
                 const totalBuckets = selectedDc.items?.reduce((sum, item) => {
                   const unit = (item.unit?.name || item.unit || '').toLowerCase();
                   return unit.includes('bucket') ? sum + (item.quantity || 0) : sum;
+                }, 0) || 0;
+
+                const totalAmount = selectedDc.items?.reduce((acc, item) => {
+                  const qty = item.quantity ?? 0;
+                  const price = item.price ?? 0;
+                  const qtyPerUnit = item.qtyPerUnit ?? 1;
+                  return acc + (item.amount ?? (qty * qtyPerUnit * price));
                 }, 0) || 0;
 
                 return (
@@ -145,15 +191,18 @@ export default function DcManager({ status, refreshKey }: DcManagerProps) {
                     background: '#f8fafc', 
                     border: '1px solid #e2e8f0', 
                     borderRadius: '8px',
-                    display: 'grid',
-                    gridTemplateColumns: '1fr 1fr',
-                    gap: '8px',
-                    fontSize: '13px',
                     color: '#334155'
                   }}>
-                    <div>Total Qty: <strong style={{ color: '#0f172a' }}>{totalQty}</strong></div>
-                    <div style={{ textAlign: 'right' }}>Crates: <strong style={{ color: '#0f172a' }}>{totalCrates}</strong></div>
-                    <div>Buckets: <strong style={{ color: '#0f172a' }}>{totalBuckets}</strong></div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '13px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px', marginBottom: '8px' }}>
+                        <div>Total Qty: <strong style={{ color: '#0f172a' }}>{totalQty}</strong></div>
+                        <div style={{ textAlign: 'right' }}>Crates: <strong style={{ color: '#0f172a' }}>{totalCrates}</strong></div>
+                        <div>Cans: <strong style={{ color: '#0f172a' }}>{totalCans}</strong></div>
+                        <div style={{ textAlign: 'right' }}>Buckets: <strong style={{ color: '#0f172a' }}>{totalBuckets}</strong></div>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 700 }}>
+                        <span style={{ fontSize: '0.9rem' }}>Grand Total</span>
+                        <span style={{ fontSize: '1.1rem', color: '#15803d' }}>₹{totalAmount.toFixed(2)}</span>
+                    </div>
                   </div>
                 );
               })()}
