@@ -108,8 +108,6 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!token) {
       setProfileReady(false);
-      setAgent(null);
-      setProfile(null);
       return;
     }
 
@@ -122,7 +120,7 @@ export default function DashboardPage() {
         setProfileReady(true);
       }
     })();
-  }, [token, refreshAgent]);
+  }, [token]); // Removed refreshAgent from dependencies to prevent any potential unstable ref issues
 
   
   return (

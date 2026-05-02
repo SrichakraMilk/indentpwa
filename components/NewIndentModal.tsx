@@ -60,8 +60,13 @@ export default function NewIndentModal({
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
+    if (open) {
+      refreshAgent?.();
+    }
+  }, [open, refreshAgent]);
+
+  useEffect(() => {
     if (!open) return;
-    refreshAgent?.();
 
 
     let cancelled = false;
