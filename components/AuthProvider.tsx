@@ -15,6 +15,7 @@ interface AuthContextValue {
   token: string | null;
   agent: AgentDetails | null;
   initializing: boolean;
+  refreshAgent: () => Promise<void>;
   login: (identifier: string, password: string) => Promise<void>;
   logout: () => void;
 }
@@ -73,6 +74,20 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     );
   };
 
+  const refreshAgent = async () => {
+    if (!token) return;
+    try {
+      const response = await validateSessionOnBackend(token);
+      setAgent(response.agent ?? null);
+      window.localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({ user, token, agent: response.agent ?? null })
+      );
+    } catch (err) {
+      console.error('Failed to refresh agent', err);
+    }
+  };
+
   const logout = () => {
     setUser(null);
     setAgent(null);
@@ -81,7 +96,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   };
 
   const value = useMemo(
-    () => ({ user, token, agent, initializing, login, logout }),
+    () => ({ user, token, agent, initializing, refreshAgent, login, logout }),
     [user, token, agent, initializing]
   );
 

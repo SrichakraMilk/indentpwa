@@ -33,7 +33,7 @@ function welcomeNameFromDb(agent: AgentDetails | null, profile: { name: string; 
 }
 
 export default function DashboardPage() {
-  const { token } = useAuth();
+  const { token, agent, user: profile, refreshAgent } = useAuth();
 
   const [stats, setStats] = useState({
     pending: 0,
@@ -44,8 +44,7 @@ export default function DashboardPage() {
 
   const [loading, setLoading] = useState(true);
   const [profileReady, setProfileReady] = useState(false);
-  const [agent, setAgent] = useState<AgentDetails | null>(null);
-  const [profile, setProfile] = useState<{ name: string; email: string } | null>(null);
+
 
   // 🔷 Load Indent Stats (Synchronized with Role-based Visibility)
   useEffect(() => {
@@ -114,19 +113,16 @@ export default function DashboardPage() {
       return;
     }
 
-    setProfileReady(false);
     (async () => {
       try {
-        const response = await fetchCurrentAgent(token);
-        setProfile(response.user);
-        setAgent(response.agent ?? null);
+        await refreshAgent();
       } catch (err) {
         console.error('Failed to load dashboard data');
       } finally {
         setProfileReady(true);
       }
     })();
-  }, [token]);
+  }, [token, refreshAgent]);
 
   
   return (

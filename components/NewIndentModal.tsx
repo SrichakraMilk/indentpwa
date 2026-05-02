@@ -43,7 +43,7 @@ export default function NewIndentModal({
   onCreated?: () => void;
   initialData?: IndentEditData;
 }) {
-  const { token, agent } = useAuth();
+  const { token, agent, refreshAgent } = useAuth();
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [allProducts, setAllProducts] = useState<Product[]>([]);
@@ -61,6 +61,8 @@ export default function NewIndentModal({
 
   useEffect(() => {
     if (!open) return;
+    refreshAgent?.();
+
 
     let cancelled = false;
     async function load() {
