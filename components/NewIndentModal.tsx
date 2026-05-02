@@ -300,8 +300,9 @@ export default function NewIndentModal({
       setSelectedUnit('');
       onCreated?.();
       onClose();
-    } catch (e) {
+    } catch (e: any) {
       console.error('Failed to create indent:', e);
+      alert(e.message || 'Failed to create indent');
     } finally {
       setSubmitting(false);
     }

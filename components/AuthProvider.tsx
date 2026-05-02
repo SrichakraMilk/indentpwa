@@ -62,7 +62,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     })();
   }, []);
 
-  const login = async (identifier: string, password: string) => {
+  const login = useCallback(async (identifier: string, password: string) => {
     const response = await apiLogin(identifier, password);
     const profile = await validateSessionOnBackend(response.token);
     setUser(profile.user);
@@ -72,32 +72,33 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       STORAGE_KEY,
       JSON.stringify({ user: profile.user, token: profile.token, agent: profile.agent ?? null })
     );
-  };
+  }, []);
 
-  const refreshAgent = async () => {
+  const refreshAgent = useCallback(async () => {
     if (!token) return;
     try {
       const response = await validateSessionOnBackend(token);
       setAgent(response.agent ?? null);
+      // Use profile.user/token from response if possible, or just the current ones
       window.localStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ user, token, agent: response.agent ?? null })
+        JSON.stringify({ user: response.user || user, token: response.token || token, agent: response.agent ?? null })
       );
     } catch (err) {
       console.error('Failed to refresh agent', err);
     }
-  };
+  }, [token, user]);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     setUser(null);
     setAgent(null);
     setToken(null);
     window.localStorage.removeItem(STORAGE_KEY);
-  };
+  }, []);
 
   const value = useMemo(
     () => ({ user, token, agent, initializing, refreshAgent, login, logout }),
-    [user, token, agent, initializing]
+    [user, token, agent, initializing, refreshAgent, login, logout]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
