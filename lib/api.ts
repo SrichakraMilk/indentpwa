@@ -74,6 +74,9 @@ export interface DcItem {
   quantity: number;
   size?: string;
   unit?: { name: string; code?: string };
+  price?: number;
+  qtyPerUnit?: number;
+  amount?: number;
 }
 
 export interface DcRecord {

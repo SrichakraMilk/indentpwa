@@ -642,18 +642,83 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
               </div>
 
               <h4>Items In DC</h4>
-              <ul className="indent-details-items" style={{ maxHeight: '200px', overflowY: 'auto' }}>
-                {selectedIndent.deliveryChallan.items?.map((item: any, idx: number) => (
-                  <li key={idx}>
-                    <span>
-                      {item.product?.name || 'Product'}
-                      {item.size ? ` · ${item.size}` : ''}
-                      {item.unit?.name ? ` · ${item.unit.name}` : ''}
-                    </span>
-                    <span>{item.quantity}</span>
-                  </li>
-                ))}
+              <ul className="indent-details-items" style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                {selectedIndent.deliveryChallan.items?.map((item: any, idx: number) => {
+                  const qty = item.quantity ?? 0;
+                  const price = item.price ?? 0;
+                  const qtyPerUnit = item.qtyPerUnit ?? 1;
+                  const amount = item.amount ?? (qty * qtyPerUnit * price);
+                  
+                  return (
+                    <li key={`${selectedIndent._id}-dc-${idx}`} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div>
+                          <strong style={{ fontSize: '0.9rem', color: '#0f172a' }}>
+                            {item.product?.name || 'Product'}
+                          </strong>
+                          <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                            {item.category?.name || ''}
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <span style={{ fontWeight: 600, color: '#15803d', fontSize: '0.9rem' }}>
+                            {amount > 0 ? `₹${amount.toFixed(2)}` : '-'}
+                          </span>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', fontSize: '0.8rem', color: '#334155' }}>
+                        <div>
+                          <span>Qty: {qty} {item.unit?.name || ''}</span>
+                          {item.size && <span style={{ color: '#64748b' }}> | {item.size}</span>}
+                        </div>
+                        {price > 0 && (
+                          <div style={{ color: '#64748b' }}>
+                            ₹{price.toFixed(2)} {qtyPerUnit > 1 ? `× ${qtyPerUnit}` : ''}
+                          </div>
+                        )}
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
+
+              {(() => {
+                const items = selectedIndent.deliveryChallan.items || [];
+                const totalQty = items.reduce((sum: number, i: any) => sum + (i.quantity || 0), 0);
+                const totalCrates = items.reduce((sum: number, i: any) => {
+                  const unit = (i.unit?.name || i.unit || '').toLowerCase();
+                  return unit.includes('crate') ? sum + (i.quantity || 0) : sum;
+                }, 0);
+                const totalCans = items.reduce((sum: number, i: any) => {
+                  const unit = (i.unit?.name || i.unit || '').toLowerCase();
+                  return unit.includes('can') ? sum + (i.quantity || 0) : sum;
+                }, 0);
+                const totalBuckets = items.reduce((sum: number, i: any) => {
+                  const unit = (i.unit?.name || i.unit || '').toLowerCase();
+                  return unit.includes('bucket') ? sum + (i.quantity || 0) : sum;
+                }, 0);
+                const totalAmount = items.reduce((sum: number, i: any) => {
+                  const q = i.quantity ?? 0;
+                  const p = i.price ?? 0;
+                  const qpu = i.qtyPerUnit ?? 1;
+                  return sum + (i.amount ?? (q * qpu * p));
+                }, 0);
+
+                return (
+                  <div style={{ marginTop: '15px', padding: '10px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px', fontSize: '12px', color: '#475569', borderBottom: '1px solid #cbd5e1', paddingBottom: '6px', marginBottom: '6px' }}>
+                      <div>Total Qty: <strong>{totalQty}</strong></div>
+                      <div style={{ textAlign: 'right' }}>Crates: <strong>{totalCrates}</strong></div>
+                      <div>Cans: <strong>{totalCans}</strong></div>
+                      <div style={{ textAlign: 'right' }}>Buckets: <strong>{totalBuckets}</strong></div>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>Grand Total</span>
+                      <span style={{ fontWeight: 700, color: '#15803d', fontSize: '1rem' }}>₹{totalAmount.toFixed(2)}</span>
+                    </div>
+                  </div>
+                );
+              })()}
 
               <div className="signature-row">
                 <div className="sig-box">Accounts Executive Signature</div>
