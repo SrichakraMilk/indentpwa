@@ -177,6 +177,15 @@ const totalBuckets = dc?.items?.reduce((sum: number, item: any) => {
   return sum;
 }, 0) || 0;
 
+const totalBulk = dc?.items?.reduce((sum: number, item: any) => {
+  const unit = (item.unit?.name || item.unit || '').toLowerCase();
+
+  if (unit.includes('bulk') || unit.includes('can')) {
+    return sum + (item.quantity || 0);
+  }
+  return sum;
+}, 0) || 0;
+
 const totalPrice = dc?.items?.reduce((sum: number, item: any) => {
   const productId = item.product?._id;
 
@@ -320,6 +329,12 @@ const categories = Object.keys(categoryMap);
       <td>{totalBuckets}</td>
     </tr>
 
+    {/* 🔹 BULK */}
+<tr>
+  <td colSpan={2}><b>BULK</b></td>
+  <td>{totalBulk}</td>
+</tr>
+
     {/* 🔹 PRICE */}
     <tr>
       <td colSpan={2}><b>₹ TOTAL</b></td>
@@ -346,6 +361,7 @@ const categories = Object.keys(categoryMap);
           <th>TOTAL</th>
           <th>CRATES</th>
           <th>BUCKETS</th>
+          <th>BULK</th>
           <th>₹ TOTAL</th>
         </tr>
 
@@ -361,7 +377,7 @@ const categories = Object.keys(categoryMap);
             ))
           )}
 
-          <th></th><th></th><th></th><th></th>
+          <th></th><th></th><th></th><th></th><th></th>
         </tr>
       </thead>
 
@@ -384,6 +400,7 @@ const categories = Object.keys(categoryMap);
 
           <td>{totalCrates}</td>
           <td>{totalBuckets}</td>
+          <td>{totalBulk}</td>
           <td>₹{totalPrice.toFixed(0)}</td>
         </tr>
       </tbody>
