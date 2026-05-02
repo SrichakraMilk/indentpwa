@@ -8,7 +8,6 @@ import { useAuth } from '@/components/AuthProvider';
 import DcManager from '@/components/DcManager';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import DcFullScreen from '@/components/DcFullScreen';
 
 const validStatuses = ['Draft', 'In Progress', 'Security Check', 'Dispatched', 'Delivered'];
 
@@ -45,34 +44,28 @@ export default function DeliveryChallanPage() {
       <div className="dashboard-container">
         <Header />
         <main className="page-shell">
-  {isLogistics ? (
-    <>
-      <p className="module-back-nav">
-        <Link href="/dashboard">← Dashboard</Link>
-      </p>
+          <p className="module-back-nav">
+            <Link href="/dashboard">← Dashboard</Link>
+          </p>
 
-      <div className="indents-header-row">
-        <h1 className="page-title">{activeTabLabel} Delivery Challans</h1>
-      </div>
+          <div className="indents-header-row">
+            <h1 className="page-title">{activeTabLabel} Delivery Challans</h1>
+          </div>
 
-      <nav className="indent-status-tabs">
-        {myTabs.map((tab) => (
-          <Link
-            key={tab.value}
-            href={`/delivery-challan${tab.value ? `?status=${tab.value}` : ''}`}
-            className={`indent-status-tab ${statusParam === tab.value ? 'active' : ''}`}
-          >
-            {tab.label}
-          </Link>
-        ))}
-      </nav>
+          <nav className="indent-status-tabs">
+            {myTabs.map((tab) => (
+              <Link
+                key={tab.value}
+                href={`/delivery-challan${tab.value ? `?status=${tab.value}` : ''}`}
+                className={`indent-status-tab ${statusParam === tab.value ? 'active' : ''}`}
+              >
+                {tab.label}
+              </Link>
+            ))}
+          </nav>
 
-      <DcManager status={statusParam} />
-    </>
-  ) : (
-    <DcFullScreen />
-  )}
-</main>
+          <DcManager status={statusParam} />
+        </main>
         <Footer />
       </div>
     </ProtectedPage>

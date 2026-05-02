@@ -127,6 +127,37 @@ export default function DcManager({ status, refreshKey }: DcManagerProps) {
                 ))}
               </ul>
 
+              {(() => {
+                const totalQty = selectedDc.items?.reduce((sum, i) => sum + (i.quantity || 0), 0) || 0;
+                const totalCrates = selectedDc.items?.reduce((sum, item) => {
+                  const unit = (item.unit?.name || item.unit || '').toLowerCase();
+                  return unit.includes('crate') ? sum + (item.quantity || 0) : sum;
+                }, 0) || 0;
+                const totalBuckets = selectedDc.items?.reduce((sum, item) => {
+                  const unit = (item.unit?.name || item.unit || '').toLowerCase();
+                  return unit.includes('bucket') ? sum + (item.quantity || 0) : sum;
+                }, 0) || 0;
+
+                return (
+                  <div style={{ 
+                    marginTop: '15px', 
+                    padding: '12px', 
+                    background: '#f8fafc', 
+                    border: '1px solid #e2e8f0', 
+                    borderRadius: '8px',
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr',
+                    gap: '8px',
+                    fontSize: '13px',
+                    color: '#334155'
+                  }}>
+                    <div>Total Qty: <strong style={{ color: '#0f172a' }}>{totalQty}</strong></div>
+                    <div style={{ textAlign: 'right' }}>Crates: <strong style={{ color: '#0f172a' }}>{totalCrates}</strong></div>
+                    <div>Buckets: <strong style={{ color: '#0f172a' }}>{totalBuckets}</strong></div>
+                  </div>
+                );
+              })()}
+
               {selectedDc.remarks && (
                 <div style={{ marginTop: '15px' }}>
                   <h4>Remarks</h4>
