@@ -36,6 +36,11 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
   const [selectedIndent, setSelectedIndent] = useState<IndentRecord | null>(null);
   const [showDcDetails, setShowDcDetails] = useState(false);
   const [remarks, setRemarks] = useState('');
+  const [checkedItems, setCheckedItems] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    setCheckedItems(new Set());
+  }, [showDcDetails, selectedIndent]);
 
   const userRoleCode = (agent?.role as { code?: string })?.code?.toUpperCase();
 
@@ -650,9 +655,25 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
                   const amount = item.amount ?? (qty * qtyPerUnit * price);
                   
                   return (
-                    <li key={`${selectedIndent._id}-dc-${idx}`} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <div>
+                    <li key={`${selectedIndent._id}-dc-${idx}`} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                      {selectedIndent.deliveryChallan.status === 'In Progress' && (
+                        <div style={{ paddingTop: '2px' }} className="d-print-none">
+                          <input 
+                            type="checkbox" 
+                            style={{ width: '20px', height: '20px', cursor: 'pointer' }}
+                            checked={checkedItems.has(`${selectedIndent._id}-dc-${idx}`)}
+                            onChange={(e) => {
+                              const newChecked = new Set(checkedItems);
+                              if (e.target.checked) newChecked.add(`${selectedIndent._id}-dc-${idx}`);
+                              else newChecked.delete(`${selectedIndent._id}-dc-${idx}`);
+                              setCheckedItems(newChecked);
+                            }}
+                          />
+                        </div>
+                      )}
+                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <div>
                           <strong style={{ fontSize: '0.9rem', color: '#0f172a' }}>
                             {item.product?.name || 'Product'}
                           </strong>
@@ -676,6 +697,7 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
                             ₹{price.toFixed(2)} {qtyPerUnit > 1 ? `× ${qtyPerUnit}` : ''}
                           </div>
                         )}
+                      </div>
                       </div>
                     </li>
                   );
@@ -727,65 +749,94 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
             </div>
 
             <div className="indent-actions d-print-none" style={{ marginTop: '20px', borderTop: '1px solid #e5e7eb', paddingTop: '15px', display: 'flex', gap: '10px' }}>
-              {isDS && selectedIndent.deliveryChallan.status === 'Draft' && (
-                <button
-                  className="confirm-btn"
-                  style={{ flex: 1, backgroundColor: '#f59e0b' }}
-                  onClick={async () => {
-                    try {
-                      await updateDcStatusApi(selectedIndent.deliveryChallan._id, 'In Progress', (agent as any).userId || (agent as any).id);
-                      alert('Dispatch started');
-                      setShowDcDetails(false);
-                    } catch (err) {
-                      alert('Failed to start dispatch');
-                    }
-                  }}
-                >
-                  🏃 Dispatch In-progress
-                </button>
-              )}
-
-              {isDS && selectedIndent.deliveryChallan.status === 'In Progress' && (
-                <button
-                  className="confirm-btn"
-                  style={{ flex: 1, backgroundColor: '#10b981' }}
-                  onClick={async () => {
-                    try {
-                      await updateDcStatusApi(selectedIndent.deliveryChallan._id, 'Security Check', (agent as any).userId || (agent as any).id);
-                      alert('Dispatch completed - moved to Security');
-                      setShowDcDetails(false);
-                    } catch (err) {
-                      alert('Failed to complete dispatch');
-                    }
-                  }}
-                >
-                  ✅ Dispatch Completed
-                </button>
-              )}
-
               {(() => {
                 const roleCode = (agent?.role as any)?.code?.toUpperCase() || "";
+                const isDS = roleCode === 'DS' || roleCode?.includes('DISPATCH SUPERVISOR');
+                const isOp = roleCode === 'DOP' || roleCode === 'OPERATOR' || roleCode === 'DISPATCHOPERATOR' || roleCode === 'DO' || roleCode?.includes('DISPATCH OPERATOR');
                 const isSec = roleCode === 'SEC' || roleCode === 'SECURITY';
-                if (isSec && selectedIndent.deliveryChallan.status === 'Security Check') {
-                  return (
-                    <button
-                      className="confirm-btn"
-                      style={{ flex: 1, backgroundColor: '#8b5cf6' }}
-                      onClick={async () => {
-                        try {
-                          await updateDcStatusApi(selectedIndent.deliveryChallan._id, 'Approved', (agent as any).userId || (agent as any).id);
-                          alert('Security Cleared - Indent Fulfilled');
-                          setShowDcDetails(false);
-                        } catch (err) {
-                          alert('Failed to clear security');
-                        }
-                      }}
-                    >
-                      ✅ Security Checked
-                    </button>
-                  );
-                }
-                return null;
+
+                const canStartDispatch = isDS || isOp;
+                const canCompleteDispatch = isDS || isOp;
+
+                return (
+                  <>
+                    {canStartDispatch && selectedIndent.deliveryChallan.status === 'Draft' && (
+                      <button
+                        className="confirm-btn"
+                        style={{ flex: 1, backgroundColor: '#f59e0b' }}
+                        onClick={async () => {
+                          try {
+                            await updateDcStatusApi(selectedIndent.deliveryChallan._id, 'In Progress', (agent as any).userId || (agent as any).id);
+                            alert('Dispatch started');
+                            setSelectedIndent({
+                              ...selectedIndent,
+                              deliveryChallan: { ...selectedIndent.deliveryChallan, status: 'In Progress' }
+                            });
+                          } catch (err) {
+                            alert('Failed to start dispatch');
+                          }
+                        }}
+                      >
+                        🏃 Start Dispatch
+                      </button>
+                    )}
+
+                    {canCompleteDispatch && selectedIndent.deliveryChallan.status === 'In Progress' && (
+                      <button
+                        className="confirm-btn"
+                        style={{ flex: 1, backgroundColor: '#10b981', opacity: checkedItems.size !== selectedIndent.deliveryChallan.items.length ? 0.5 : 1 }}
+                        disabled={checkedItems.size !== selectedIndent.deliveryChallan.items.length}
+                        onClick={async () => {
+                          try {
+                            await updateDcStatusApi(selectedIndent.deliveryChallan._id, 'Pending Supervisor Approval', (agent as any).userId || (agent as any).id);
+                            alert('Dispatch completed - sent for supervisor approval');
+                            setShowDcDetails(false);
+                          } catch (err) {
+                            alert('Failed to complete dispatch');
+                          }
+                        }}
+                      >
+                        ✅ Dispatch Complete ({checkedItems.size}/{selectedIndent.deliveryChallan.items.length})
+                      </button>
+                    )}
+
+                    {isDS && selectedIndent.deliveryChallan.status === 'Pending Supervisor Approval' && (
+                      <button
+                        className="confirm-btn"
+                        style={{ flex: 1, backgroundColor: '#3b82f6' }}
+                        onClick={async () => {
+                          try {
+                            await updateDcStatusApi(selectedIndent.deliveryChallan._id, 'Security Check', (agent as any).userId || (agent as any).id);
+                            alert('Dispatch verified - moved to Security');
+                            setShowDcDetails(false);
+                          } catch (err) {
+                            alert('Failed to verify dispatch');
+                          }
+                        }}
+                      >
+                        👍 Verify & Approve Dispatch
+                      </button>
+                    )}
+
+                    {isSec && selectedIndent.deliveryChallan.status === 'Security Check' && (
+                      <button
+                        className="confirm-btn"
+                        style={{ flex: 1, backgroundColor: '#8b5cf6' }}
+                        onClick={async () => {
+                          try {
+                            await updateDcStatusApi(selectedIndent.deliveryChallan._id, 'Approved', (agent as any).userId || (agent as any).id);
+                            alert('Security Cleared - Indent Fulfilled');
+                            setShowDcDetails(false);
+                          } catch (err) {
+                            alert('Failed to clear security');
+                          }
+                        }}
+                      >
+                        ✅ Security Checked
+                      </button>
+                    )}
+                  </>
+                );
               })()}
 
               {(() => {

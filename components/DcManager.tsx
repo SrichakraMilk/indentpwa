@@ -14,6 +14,11 @@ export default function DcManager({ status, refreshKey }: DcManagerProps) {
   const [dcs, setDcs] = useState<DcRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDc, setSelectedDc] = useState<DcRecord | null>(null);
+  const [checkedItems, setCheckedItems] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    setCheckedItems(new Set());
+  }, [selectedDc]);
 
   useEffect(() => {
     (async () => {
@@ -122,9 +127,25 @@ export default function DcManager({ status, refreshKey }: DcManagerProps) {
                   const amount = item.amount ?? (qty * qtyPerUnit * price);
                   
                   return (
-                    <li key={`${selectedDc._id}-${idx}`} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <div>
+                    <li key={`${selectedDc._id}-${idx}`} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                      {selectedDc.status === 'In Progress' && (
+                        <div style={{ paddingTop: '2px' }} className="d-print-none">
+                          <input 
+                            type="checkbox" 
+                            style={{ width: '20px', height: '20px', cursor: 'pointer' }}
+                            checked={checkedItems.has(`${selectedDc._id}-${idx}`)}
+                            onChange={(e) => {
+                              const newChecked = new Set(checkedItems);
+                              if (e.target.checked) newChecked.add(`${selectedDc._id}-${idx}`);
+                              else newChecked.delete(`${selectedDc._id}-${idx}`);
+                              setCheckedItems(newChecked);
+                            }}
+                          />
+                        </div>
+                      )}
+                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <div>
                           <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>
                             {item.product?.name || 'Unknown Product'}
                           </strong>
@@ -153,6 +174,7 @@ export default function DcManager({ status, refreshKey }: DcManagerProps) {
                             )}
                           </div>
                         )}
+                      </div>
                       </div>
                     </li>
                   );
@@ -238,12 +260,16 @@ const unit = unitValue.toLowerCase();
             <div className="indent-actions d-print-none" style={{ marginTop: '20px', borderTop: '1px solid #e5e7eb', paddingTop: '15px', display: 'flex', gap: '10px' }}>
                {(() => {
                  const roleCode = (agent?.role as any)?.code?.toUpperCase() || "";
-                 const isDS = roleCode === 'DS';
+                 const isDS = roleCode === 'DS' || roleCode?.includes('DISPATCH SUPERVISOR');
+                 const isOp = roleCode === 'DOP' || roleCode === 'OPERATOR' || roleCode === 'DISPATCHOPERATOR' || roleCode === 'DO' || roleCode?.includes('DISPATCH OPERATOR');
                  const isSec = roleCode === 'SEC' || roleCode === 'SECURITY';
+
+                 const canStartDispatch = isDS || isOp;
+                 const canCompleteDispatch = isDS || isOp;
 
                  return (
                    <>
-                    {isDS && selectedDc.status === 'Draft' && (
+                    {canStartDispatch && selectedDc.status === 'Draft' && (
                       <button 
                         className="confirm-btn" 
                         style={{ flex: 1, background: '#f59e0b' }} 
@@ -251,31 +277,50 @@ const unit = unitValue.toLowerCase();
                           try {
                               await updateDcStatusApi(selectedDc._id, 'In Progress', (agent as any).userId || (agent as any).id);
                               alert('Dispatch started');
-                              setSelectedDc(null);
+                              setSelectedDc({ ...selectedDc, status: 'In Progress' });
                           } catch (err) {
                               alert('Failed to start dispatch');
                           }
                         }}
                       >
-                        🏃 Dispatch In-progress
+                        🏃 Start Dispatch
                       </button>
                     )}
 
-                    {isDS && selectedDc.status === 'In Progress' && (
+                    {canCompleteDispatch && selectedDc.status === 'In Progress' && (
                       <button 
                         className="confirm-btn" 
-                        style={{ flex: 1, background: '#10b981' }} 
+                        style={{ flex: 1, background: '#10b981', opacity: checkedItems.size !== selectedDc.items.length ? 0.5 : 1 }} 
+                        disabled={checkedItems.size !== selectedDc.items.length}
                         onClick={async () => {
                           try {
-                              await updateDcStatusApi(selectedDc._id, 'Security Check', (agent as any).userId || (agent as any).id);
-                              alert('Dispatch completed - moved to Security');
+                              await updateDcStatusApi(selectedDc._id, 'Pending Supervisor Approval', (agent as any).userId || (agent as any).id);
+                              alert('Dispatch completed - sent for supervisor approval');
                               setSelectedDc(null);
                           } catch (err) {
                               alert('Failed to complete dispatch');
                           }
                         }}
                       >
-                        ✅ Dispatch Completed
+                        ✅ Dispatch Complete ({checkedItems.size}/{selectedDc.items.length})
+                      </button>
+                    )}
+
+                    {isDS && selectedDc.status === 'Pending Supervisor Approval' && (
+                      <button 
+                        className="confirm-btn" 
+                        style={{ flex: 1, background: '#3b82f6' }} 
+                        onClick={async () => {
+                          try {
+                              await updateDcStatusApi(selectedDc._id, 'Security Check', (agent as any).userId || (agent as any).id);
+                              alert('Dispatch verified - moved to Security');
+                              setSelectedDc(null);
+                          } catch (err) {
+                              alert('Failed to verify dispatch');
+                          }
+                        }}
+                      >
+                        👍 Verify & Approve Dispatch
                       </button>
                     )}
 
