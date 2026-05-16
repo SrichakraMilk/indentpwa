@@ -751,9 +751,11 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
             <div className="indent-actions d-print-none" style={{ marginTop: '20px', borderTop: '1px solid #e5e7eb', paddingTop: '15px', display: 'flex', gap: '10px' }}>
               {(() => {
                 const roleCode = (agent?.role as any)?.code?.toUpperCase() || "";
-                const isDS = roleCode === 'DS' || roleCode?.includes('DISPATCH SUPERVISOR');
-                const isOp = roleCode === 'DOP' || roleCode === 'OPERATOR' || roleCode === 'DISPATCHOPERATOR' || roleCode === 'DO' || roleCode?.includes('DISPATCH OPERATOR');
-                const isSec = roleCode === 'SEC' || roleCode === 'SECURITY';
+                const roleName = (agent?.role as any)?.name?.toUpperCase() || "";
+                
+                const isDS = roleCode === 'DS' || roleName.includes('SUPERVISOR');
+                const isOp = roleCode === 'DOP' || roleCode === 'DO' || roleName.includes('OPERATOR') || roleName.includes('DISPATCH');
+                const isSec = roleCode === 'SEC' || roleName.includes('SECURITY');
 
                 const canStartDispatch = isDS || isOp;
                 const canCompleteDispatch = isDS || isOp;
