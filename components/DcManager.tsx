@@ -336,6 +336,7 @@ const unit = unitValue.toLowerCase();
                               await updateDcStatusApi(selectedDc._id, 'Approved', (agent as any).userId || (agent as any).id);
                               alert('Security Cleared - Indent Fulfilled');
                               setSelectedDc(null);
+                              window.location.reload();
                           } catch (err) {
                               alert('Failed to clear security');
                           }

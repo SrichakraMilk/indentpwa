@@ -937,6 +937,24 @@ export async function fetchAgentsForRouteApi(
   return normalizeAgentsListPayload(data);
 }
 
+/**
+ * All agents: `GET /api/users/agents` — for Accounts roles creating indents on behalf of agents.
+ */
+export async function fetchAllAgentsApi(
+  token?: string | null
+): Promise<ListedAgent[]> {
+  const response = await fetch(USERS_AGENTS_ENDPOINT, {
+    cache: 'no-store',
+    headers: buildAuthHeaders(false, token)
+  });
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Unable to fetch agents: ${errorText || response.statusText}`);
+  }
+  const data = await response.json();
+  return normalizeAgentsListPayload(data);
+}
+
 function normalizeCategory(raw: unknown): Category | null {
   if (!raw || typeof raw !== 'object') return null;
   const o = raw as Record<string, unknown>;

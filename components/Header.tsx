@@ -39,7 +39,15 @@ export default function Header() {
     ? (agent.role as { name?: string; code?: string }) 
     : undefined;
   const roleName = (role?.name ?? role?.code ?? '').trim();
+  const roleCode = (role?.code ?? '').toUpperCase();
+  const roleNameFull = (role?.name ?? '').toUpperCase();
   const isAgent = roleName === 'Agent' || roleName === 'AGT';
+
+  const logisticsCodes = ['DS', 'SEC', 'SUP', 'DOP', 'DO'];
+  const isLogistics = logisticsCodes.includes(roleCode) || 
+                      roleNameFull.includes('DISPATCH') || 
+                      roleNameFull.includes('SECURITY') || 
+                      roleNameFull.includes('OPERATOR');
 
   return (
     <div className="dashboard-header">
@@ -82,27 +90,30 @@ export default function Header() {
       </button>
         <Link href="/dashboard" className={`menu-item ${pathname === '/dashboard' ? 'active' : ''}`}>Dashboard</Link>
         
-        {!isAgent && (
+        {!isLogistics && (
           <>
-            <Link href="/routes" className={`menu-item ${pathname === '/routes' ? 'active' : ''}`}>Routes</Link>
-            <Link href="/agents" className={`menu-item ${pathname === '/agents' ? 'active' : ''}`}>Agents</Link>
+            {!isAgent && (
+              <>
+                <Link href="/routes" className={`menu-item ${pathname === '/routes' ? 'active' : ''}`}>Routes</Link>
+                <Link href="/agents" className={`menu-item ${pathname === '/agents' ? 'active' : ''}`}>Agents</Link>
+              </>
+            )}
+
+            <Link href="/indent" className={`menu-item ${pathname === '/indent' ? 'active' : ''}`}>Indents</Link>
+            <Link href="/payments" className={`menu-item ${pathname === '/payments' ? 'active' : ''}`}>Payments</Link>
+            <Link href="/invoice" className={`menu-item ${pathname === '/invoice' ? 'active' : ''}`}>Invoice</Link>
+
+            {isAgent && (
+              <>
+                <Link href="/orders" className={`menu-item ${pathname === '/orders' ? 'active' : ''}`}>Orders</Link>
+                <Link href="/help" className={`menu-item ${pathname === '/help' ? 'active' : ''}`}>Help</Link>
+                <Link href="/catalog" className={`menu-item ${pathname === '/catalog' ? 'active' : ''}`}>Catalog</Link>
+              </>
+            )}
           </>
         )}
 
-        <Link href="/indent" className={`menu-item ${pathname === '/indent' ? 'active' : ''}`}>Indents</Link>
-        <Link href="/payments" className={`menu-item ${pathname === '/payments' ? 'active' : ''}`}>Payments</Link>
-        <Link href="/invoice" className={`menu-item ${pathname === '/invoice' ? 'active' : ''}`}>Invoice</Link>
-        
         <Link href="/delivery-challan" className={`menu-item ${pathname === '/delivery-challan' ? 'active' : ''}`}>Delivery Challans</Link>
-
-        {isAgent && (
-          <>
-            <Link href="/orders" className={`menu-item ${pathname === '/orders' ? 'active' : ''}`}>Orders</Link>
-            <Link href="/help" className={`menu-item ${pathname === '/help' ? 'active' : ''}`}>Help</Link>
-            <Link href="/catalog" className={`menu-item ${pathname === '/catalog' ? 'active' : ''}`}>Catalog</Link>
-
-          </>
-        )}
 
         <button type="button" onClick={handleLogout} className="menu-item menu-logout-btn">
           Logout

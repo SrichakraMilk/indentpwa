@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Category, createIndentApi, fetchAgentPriceChartApi, fetchProductCategoriesApi, fetchProductsApi, fetchUnitsApi, IndentItem, Product, resubmitIndentApi, Unit } from '@/lib/api';
+import { Category, createIndentApi, fetchAgentPriceChartApi, fetchAllAgentsApi, fetchProductCategoriesApi, fetchProductsApi, fetchUnitsApi, IndentItem, ListedAgent, Product, resubmitIndentApi, Unit } from '@/lib/api';
 import { useAuth } from '@/components/AuthProvider';
 
 interface IndentRow {
@@ -36,12 +36,14 @@ export default function NewIndentModal({
   open,
   onClose,
   onCreated,
-  initialData
+  initialData,
+  isAccountsExecutive = false,
 }: {
   open: boolean;
   onClose: () => void;
   onCreated?: () => void;
   initialData?: IndentEditData;
+  isAccountsExecutive?: boolean;
 }) {
   const { token, agent, refreshAgent } = useAuth();
 
@@ -59,26 +61,38 @@ export default function NewIndentModal({
   const [error, setError] = useState<{cat?: boolean; prod?: boolean; size?: boolean; qty?: boolean; unit?: boolean}>({});
   const [submitting, setSubmitting] = useState(false);
 
+  // AE-specific state
+  const [agentList, setAgentList] = useState<ListedAgent[]>([]);
+  const [selectedAgentId, setSelectedAgentId] = useState('');
+  const [agentSearch, setAgentSearch] = useState('');
+  const selectedAgentObj = agentList.find(a => a.id === selectedAgentId) ?? null;
+
   useEffect(() => {
     if (open) {
       refreshAgent?.();
+      // If AE, load full agent list
+      if (isAccountsExecutive && token) {
+        fetchAllAgentsApi(token).then(setAgentList).catch(console.error);
+      }
     }
-  }, [open, refreshAgent]);
+  }, [open, refreshAgent, isAccountsExecutive, token]);
 
   useEffect(() => {
     if (!open) return;
 
+    // For AE: fetch price chart for the SELECTED agent
+    // For regular agent: fetch price chart for themselves
+    const priceChartAgentId = isAccountsExecutive
+      ? selectedAgentId || null
+      : (agent?._id ?? agent?.id ?? agent?.userId);
 
     let cancelled = false;
     async function load() {
-      // Resolve agent MongoDB _id for price chart lookup
-      const agentId = agent?._id ?? agent?.id ?? agent?.userId;
-
       const settled = await Promise.allSettled([
         fetchProductCategoriesApi(),
         fetchProductsApi(),
         fetchUnitsApi(),
-        agentId && token ? fetchAgentPriceChartApi(agentId, token) : Promise.resolve(new Map<string, number>())
+        priceChartAgentId && token ? fetchAgentPriceChartApi(priceChartAgentId, token) : Promise.resolve(new Map<string, number>())
       ]);
       if (cancelled) return;
 
@@ -120,7 +134,7 @@ export default function NewIndentModal({
     return () => {
       cancelled = true;
     };
-  }, [open, agent, token]);
+  }, [open, agent, token, isAccountsExecutive, selectedAgentId]);
 
   useEffect(() => {
     if (!open) return;
@@ -146,12 +160,19 @@ export default function NewIndentModal({
       setSelectedProduct('');
       setSelectedSize('');
       setSelectedUnit('');
+      if (isAccountsExecutive) {
+        setSelectedAgentId('');
+        setAgentSearch('');
+      }
     }
-  }, [open, initialData, setRemarks, setRows, setSelectedCategory, setSelectedProduct, setSelectedSize, setSelectedUnit]);
+  }, [open, initialData, isAccountsExecutive]);
 
   // Only show products where the agent has a custom price > 1
+  // For AE: show all products if no agent selected yet; otherwise filter by selected agent's price chart
   const filteredProducts = (allProducts || []).filter((p) => {
     if (!p) return false;
+    // If AE and no agent selected yet, show all products
+    if (isAccountsExecutive && !selectedAgentId) return true;
     const agentPrice = priceMap.get(p.id);
     return agentPrice != null && agentPrice > 1;
   });
@@ -256,6 +277,11 @@ export default function NewIndentModal({
 
   const handleCreate = async () => {
     if (rows.length === 0 || submitting) return;
+    // AE must select an agent
+    if (isAccountsExecutive && !selectedAgentId) {
+      alert('Please select an agent before creating the indent.');
+      return;
+    }
     setSubmitting(true);
     try {
       const resolveId = (value: unknown): string | undefined => {
@@ -281,6 +307,18 @@ export default function NewIndentModal({
 
       if (initialData) {
         await resubmitIndentApi(initialData.id, items, remarks || 'Resubmitted', token);
+      } else if (isAccountsExecutive && selectedAgentObj) {
+        // AE creates on behalf of selected agent — use agent's route/plant/branch
+        const agRef = selectedAgentObj as any;
+        await createIndentApi({
+          route: agRef.routeLabel ? (agRef as any).routeId ?? resolveId(agRef.route) : undefined,
+          plant: resolveId(agent?.plant),  // AE's plant
+          department: resolveId(agent?.department),
+          branch: agRef.branchLabel ? (agRef as any).branchId ?? resolveId(agRef.branch) : undefined,
+          remarks: remarks || `Created by Accounts Executive for agent ${selectedAgentObj.displayName}`,
+          agent: selectedAgentId,
+          items
+        }, token);
       } else {
         await createIndentApi({
           route: resolveId(agent?.route),
@@ -303,6 +341,10 @@ export default function NewIndentModal({
       setSelectedProduct('');
       setSelectedSize('');
       setSelectedUnit('');
+      if (isAccountsExecutive) {
+        setSelectedAgentId('');
+        setAgentSearch('');
+      }
       onCreated?.();
       onClose();
     } catch (e: any) {
@@ -321,7 +363,11 @@ export default function NewIndentModal({
         <div className="indent-modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
             <h2 className="indent-modal-title">Create Indent</h2>
-            <p className="indent-modal-subtitle">Select category, product, size, and quantity, then add to cart.</p>
+            <p className="indent-modal-subtitle">
+              {isAccountsExecutive
+                ? 'Select an agent, then add products to create an indent on their behalf.'
+                : 'Select category, product, size, and quantity, then add to cart.'}
+            </p>
           </div>
           <button 
             type="button"
@@ -346,6 +392,56 @@ export default function NewIndentModal({
             </svg>
           </button>
         </div>
+
+        {/* AE Agent Selector */}
+        {isAccountsExecutive && (
+          <div style={{ padding: '12px 16px', borderBottom: '1px solid #e2e8f0', background: '#eff6ff' }}>
+            <label style={{ display: 'block', fontWeight: 600, fontSize: '0.9rem', color: '#1e40af', marginBottom: '6px' }}>
+              Select Agent *
+            </label>
+            <input
+              type="text"
+              placeholder="Search by name, agent code or user ID..."
+              value={agentSearch}
+              onChange={e => setAgentSearch(e.target.value)}
+              style={{ width: '100%', padding: '8px 12px', border: '1px solid #bfdbfe', borderRadius: '8px', fontSize: '0.9rem', marginBottom: '6px', boxSizing: 'border-box' }}
+            />
+            <select
+              value={selectedAgentId}
+              onChange={e => {
+                setSelectedAgentId(e.target.value);
+                setRows([]);
+                setSelectedCategory('');
+                setSelectedProduct('');
+                setPriceMap(new Map());
+              }}
+              style={{ width: '100%', padding: '8px 12px', border: selectedAgentId ? '1px solid #22c55e' : '1px solid #bfdbfe', borderRadius: '8px', fontSize: '0.9rem', boxSizing: 'border-box' }}
+            >
+              <option value="">-- Select an agent --</option>
+              {agentList
+                .filter(a => {
+                  if (!agentSearch.trim()) return true;
+                  const q = agentSearch.toLowerCase();
+                  return (
+                    a.displayName.toLowerCase().includes(q) ||
+                    (a.userid ?? '').toLowerCase().includes(q) ||
+                    (a.agentCode ?? '').toLowerCase().includes(q)
+                  );
+                })
+                .map(a => (
+                  <option key={a.id} value={a.id}>
+                    {a.displayName} {a.agentCode ? `(${a.agentCode})` : ''} {a.routeLabel ? `— ${a.routeLabel}` : ''}
+                  </option>
+                ))
+              }
+            </select>
+            {selectedAgentObj && (
+              <div style={{ marginTop: '6px', fontSize: '0.8rem', color: '#1e40af' }}>
+                Route: <strong>{selectedAgentObj.routeLabel ?? 'N/A'}</strong> | Branch: <strong>{selectedAgentObj.branchLabel ?? 'N/A'}</strong>
+              </div>
+            )}
+          </div>
+        )}
 
         <div style={{ padding: '12px 16px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', display: 'flex', flexWrap: 'wrap', gap: '1rem 2rem', fontSize: '0.9rem' }}>
           <div><span style={{ color: '#64748b' }}>Credit Limit:</span> <strong style={{ color: '#0f172a' }}>₹{creditLimit.toFixed(2)}</strong></div>

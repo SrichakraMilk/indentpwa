@@ -44,7 +44,10 @@ export default function IndentsPage() {
   const role =
     agent?.role && typeof agent.role === 'object' ? (agent.role as { name?: string; code?: string }) : undefined;
   const roleName = role?.name ?? role?.code ?? '';
+  const roleCode = (role?.code ?? '').toUpperCase();
+  const roleNameUp = (role?.name ?? '').toUpperCase();
   const isAgent = roleName === 'Agent' || roleName === 'AGT';
+  const isAE = roleCode === 'AE' || roleNameUp.includes('ACCOUNTS EXECUTIVE');
 
   return (
     <ProtectedPage>
@@ -56,7 +59,7 @@ export default function IndentsPage() {
         </p>
         <div className="indents-header-row">
           <h1 className="page-title">{activeTabLabel} Indents</h1>
-          {isAgent && (
+          {(isAgent || isAE) && (
             <button className="create-indent-btn" onClick={() => setModalOpen(true)}>
               + Create New Indent
             </button>
@@ -77,6 +80,7 @@ export default function IndentsPage() {
           open={modalOpen}
           onClose={() => setModalOpen(false)}
           onCreated={() => setRefreshKey((key) => key + 1)}
+          isAccountsExecutive={isAE}
         />
         <IndentManager filterStatus={filterStatus} viewOnly={isAgent} refreshKey={refreshKey} />
         </main>

@@ -830,6 +830,7 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
                             await updateDcStatusApi(selectedIndent.deliveryChallan._id, 'Approved', (agent as any).userId || (agent as any).id);
                             alert('Security Cleared - Indent Fulfilled');
                             setShowDcDetails(false);
+                            window.location.reload();
                           } catch (err) {
                             alert('Failed to clear security');
                           }
