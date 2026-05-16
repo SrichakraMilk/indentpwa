@@ -128,7 +128,7 @@ export default function DcManager({ status, refreshKey }: DcManagerProps) {
                   
                   return (
                     <li key={`${selectedDc._id}-${idx}`} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
-                      {selectedDc.status === 'In Progress' && (
+                      {(selectedDc.status === 'In Progress' || selectedDc.status === 'Security Check') && (
                         <div style={{ paddingTop: '2px' }} className="d-print-none">
                           <input 
                             type="checkbox" 
@@ -329,7 +329,8 @@ const unit = unitValue.toLowerCase();
                     {isSec && selectedDc.status === 'Security Check' && (
                       <button 
                         className="confirm-btn" 
-                        style={{ flex: 1, background: '#8b5cf6' }} 
+                        style={{ flex: 1, background: '#8b5cf6', opacity: checkedItems.size !== selectedDc.items.length ? 0.5 : 1 }} 
+                        disabled={checkedItems.size !== selectedDc.items.length}
                         onClick={async () => {
                           try {
                               await updateDcStatusApi(selectedDc._id, 'Approved', (agent as any).userId || (agent as any).id);
@@ -340,7 +341,7 @@ const unit = unitValue.toLowerCase();
                           }
                         }}
                       >
-                        ✅ Security Checked
+                        ✅ Security Checked ({checkedItems.size}/{selectedDc.items.length})
                       </button>
                     )}
                    </>

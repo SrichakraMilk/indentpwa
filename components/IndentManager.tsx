@@ -656,7 +656,7 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
                   
                   return (
                     <li key={`${selectedIndent._id}-dc-${idx}`} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
-                      {selectedIndent.deliveryChallan.status === 'In Progress' && (
+                      {(selectedIndent.deliveryChallan.status === 'In Progress' || selectedIndent.deliveryChallan.status === 'Security Check') && (
                         <div style={{ paddingTop: '2px' }} className="d-print-none">
                           <input 
                             type="checkbox" 
@@ -823,7 +823,8 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
                     {isSec && selectedIndent.deliveryChallan.status === 'Security Check' && (
                       <button
                         className="confirm-btn"
-                        style={{ flex: 1, backgroundColor: '#8b5cf6' }}
+                        style={{ flex: 1, backgroundColor: '#8b5cf6', opacity: checkedItems.size !== selectedIndent.deliveryChallan.items.length ? 0.5 : 1 }}
+                        disabled={checkedItems.size !== selectedIndent.deliveryChallan.items.length}
                         onClick={async () => {
                           try {
                             await updateDcStatusApi(selectedIndent.deliveryChallan._id, 'Approved', (agent as any).userId || (agent as any).id);
@@ -834,7 +835,7 @@ export default function IndentManager({ filterStatus, viewOnly = false, refreshK
                           }
                         }}
                       >
-                        ✅ Security Checked
+                        ✅ Security Checked ({checkedItems.size}/{selectedIndent.deliveryChallan.items.length})
                       </button>
                     )}
                   </>
