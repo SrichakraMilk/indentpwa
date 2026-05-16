@@ -66,6 +66,7 @@ const UNITS_ENDPOINT = '/api/units';
 const DC_ENDPOINT = '/api/delivery-challans';
 const CHANGE_PASSWORD_ENDPOINT = '/api/auth/change-password';
 const AGENT_PRICE_CHART_ENDPOINT = '/api/agent-price-chart';
+const AGENT_PAYMENTS_ENDPOINT = '/api/agent-payments';
 const AUTH_STORAGE_KEY = 'indent-pwa-auth';
 
 export interface DcItem {
@@ -116,6 +117,53 @@ export async function updateDcStatusApi(dcId: string, status: string, userId: st
     throw new Error(`Unable to update DC status: ${errorText || response.statusText}`);
   }
   return response.json();
+}
+
+export interface AgentPaymentRecord {
+  _id: string;
+  paymentNumber: string;
+  agent: { _id: string; fname: string; lname: string; userid: string; agentCode?: string; creditLimit?: number; outstanding?: number };
+  amount: number;
+  remarks?: string;
+  createdBy: { fname: string; lname: string };
+  creditLimitAtPayment: number;
+  outstandingAtPayment: number;
+  outstandingAfterPayment: number;
+  status: string;
+  createdAt: string;
+}
+
+export async function fetchAgentPaymentsApi(agentId?: string, token?: string | null): Promise<AgentPaymentRecord[]> {
+  const qs = agentId ? `?agentId=${encodeURIComponent(agentId)}` : '';
+  const res = await fetch(`${AGENT_PAYMENTS_ENDPOINT}${qs}`, {
+    headers: buildAuthHeaders(false, token),
+    cache: 'no-store',
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Failed to fetch payments: ${err || res.statusText}`);
+  }
+  const data = await res.json();
+  return data.payments ?? [];
+}
+
+export async function createAgentPaymentApi(
+  agentId: string,
+  amount: number,
+  remarks: string,
+  token?: string | null
+): Promise<AgentPaymentRecord> {
+  const res = await fetch(AGENT_PAYMENTS_ENDPOINT, {
+    method: 'POST',
+    headers: buildAuthHeaders(true, token),
+    body: JSON.stringify({ agentId, amount, remarks }),
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Failed to record payment: ${err || res.statusText}`);
+  }
+  const data = await res.json();
+  return data.payment;
 }
 
 /**
@@ -440,6 +488,8 @@ export interface ListedAgent {
   branchLabel?: string;
   routeLabel?: string;
   isActive?: boolean;
+  creditLimit?: number;
+  outstanding?: number;
 }
 
 type RawProduct = {
@@ -888,6 +938,8 @@ function normalizeListedAgent(raw: unknown): ListedAgent | null {
   const userid = typeof o.userid === 'string' ? o.userid.trim() : undefined;
   const agentCode = typeof o.agentCode === 'string' ? o.agentCode.trim() : undefined;
   const isActive = typeof o.isActive === 'boolean' ? o.isActive : undefined;
+  const creditLimit = typeof o.creditLimit === 'number' ? o.creditLimit : undefined;
+  const outstanding = typeof o.outstanding === 'number' ? o.outstanding : undefined;
   return {
     id,
     fname,
@@ -899,7 +951,9 @@ function normalizeListedAgent(raw: unknown): ListedAgent | null {
     agentCode: agentCode || undefined,
     branchLabel: refPlaceLabel(o.branch),
     routeLabel: refPlaceLabel(o.route),
-    isActive
+    isActive,
+    creditLimit,
+    outstanding,
   };
 }
 
