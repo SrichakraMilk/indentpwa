@@ -177,7 +177,7 @@ export default function DashboardPage() {
             : (() => {
                 const code = (agent?.role as { code?: string })?.code?.toUpperCase() || "";
                 const isAccounts = code === 'AE' || code === 'AI';
-                const isLogistics = code === 'DS' || code === 'SEC' || code === 'SUP';
+                const isLogistics = code === 'DS' || code === 'SEC' || code === 'SUP' || code === 'DOP' || code === 'OPERATOR' || code === 'DISPATCHOPERATOR' || code === 'DO' || code.includes('DISPATCH OPERATOR');
 
                 // 🚛 SPECIAL VIEW: Logistics & Security only see Delivery Challan
                 if (isLogistics) {
