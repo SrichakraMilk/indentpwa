@@ -222,9 +222,10 @@ export default function NewIndentModal({
   const totalQty = rows.reduce((sum, row) => sum + row.qty, 0);
   const totalAmount = rows.reduce((sum, row) => sum + row.qty * (row.qtyPerUnit ?? 1) * (row.price ?? 0), 0);
 
-  const creditLimit = agent?.creditLimit || 0;
-  const outstanding = agent?.outstanding || 0;
-  const creditBalance = agent?.creditBalance ?? (creditLimit - outstanding);
+  const activeAgent = isAccountsExecutive ? (selectedAgentObj || null) : agent;
+  const creditLimit = activeAgent?.creditLimit || 0;
+  const outstanding = activeAgent?.outstanding || 0;
+  const creditBalance = (activeAgent as any)?.creditBalance ?? (creditLimit - outstanding);
   const exceedsCredit = totalAmount > creditBalance;
 
   const handleAddRow = () => {
@@ -309,12 +310,11 @@ export default function NewIndentModal({
         await resubmitIndentApi(initialData.id, items, remarks || 'Resubmitted', token);
       } else if (isAccountsExecutive && selectedAgentObj) {
         // AE creates on behalf of selected agent — use agent's route/plant/branch
-        const agRef = selectedAgentObj as any;
         await createIndentApi({
-          route: agRef.routeLabel ? (agRef as any).routeId ?? resolveId(agRef.route) : undefined,
+          route: selectedAgentObj.routeId,
           plant: resolveId(agent?.plant),  // AE's plant
           department: resolveId(agent?.department),
-          branch: agRef.branchLabel ? (agRef as any).branchId ?? resolveId(agRef.branch) : undefined,
+          branch: selectedAgentObj.branchId,
           remarks: remarks || `Created by Accounts Executive for agent ${selectedAgentObj.displayName}`,
           agent: selectedAgentId,
           items
@@ -443,11 +443,17 @@ export default function NewIndentModal({
           </div>
         )}
 
-        <div style={{ padding: '12px 16px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', display: 'flex', flexWrap: 'wrap', gap: '1rem 2rem', fontSize: '0.9rem' }}>
-          <div><span style={{ color: '#64748b' }}>Credit Limit:</span> <strong style={{ color: '#0f172a' }}>₹{creditLimit.toFixed(2)}</strong></div>
-          <div><span style={{ color: '#64748b' }}>Outstanding:</span> <strong style={{ color: '#ef4444' }}>₹{outstanding.toFixed(2)}</strong></div>
-          <div><span style={{ color: '#64748b' }}>Available Balance:</span> <strong style={{ color: creditBalance < 0 ? '#ef4444' : '#15803d' }}>₹{creditBalance.toFixed(2)}</strong></div>
-        </div>
+        {isAccountsExecutive && !selectedAgentId ? (
+          <div style={{ padding: '12px 16px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#64748b', fontSize: '0.9rem', textAlign: 'center' }}>
+            Please select an agent to view their credit limit and balance details.
+          </div>
+        ) : (
+          <div style={{ padding: '12px 16px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', display: 'flex', flexWrap: 'wrap', gap: '1rem 2rem', fontSize: '0.9rem' }}>
+            <div><span style={{ color: '#64748b' }}>Credit Limit:</span> <strong style={{ color: '#0f172a' }}>₹{creditLimit.toFixed(2)}</strong></div>
+            <div><span style={{ color: '#64748b' }}>Outstanding:</span> <strong style={{ color: '#ef4444' }}>₹{outstanding.toFixed(2)}</strong></div>
+            <div><span style={{ color: '#64748b' }}>Available Balance:</span> <strong style={{ color: creditBalance < 0 ? '#ef4444' : '#15803d' }}>₹{creditBalance.toFixed(2)}</strong></div>
+          </div>
+        )}
 
         <div className="indent-modal-grid">
           <label className="indent-modal-label">

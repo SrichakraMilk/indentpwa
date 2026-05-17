@@ -486,7 +486,9 @@ export interface ListedAgent {
   userid?: string;
   agentCode?: string;
   branchLabel?: string;
+  branchId?: string;
   routeLabel?: string;
+  routeId?: string;
   isActive?: boolean;
   creditLimit?: number;
   outstanding?: number;
@@ -654,10 +656,10 @@ function normalizeAgentProfile(data: any): { name: string; email: string; agent?
           email: agent.email,
           mobile: agent.mobile,
           agentCode: agent.agentCode,
-          creditLimit: agent.creditLimit,
-          outstanding: agent.outstanding,
-          creditBalance: agent.creditBalance,
-          balance: agent.balance,
+          creditLimit: agent.creditLimit != null ? Number(agent.creditLimit) : 0,
+          outstanding: agent.outstanding != null ? Number(agent.outstanding) : 0,
+          creditBalance: agent.creditBalance != null ? Number(agent.creditBalance) : undefined,
+          balance: agent.balance != null ? Number(agent.balance) : undefined,
           address: agent.address,
           isActive: agent.isActive,
           role: agent.role ? {
@@ -938,8 +940,8 @@ function normalizeListedAgent(raw: unknown): ListedAgent | null {
   const userid = typeof o.userid === 'string' ? o.userid.trim() : undefined;
   const agentCode = typeof o.agentCode === 'string' ? o.agentCode.trim() : undefined;
   const isActive = typeof o.isActive === 'boolean' ? o.isActive : undefined;
-  const creditLimit = typeof o.creditLimit === 'number' ? o.creditLimit : undefined;
-  const outstanding = typeof o.outstanding === 'number' ? o.outstanding : undefined;
+  const creditLimit = o.creditLimit != null ? Number(o.creditLimit) : undefined;
+  const outstanding = o.outstanding != null ? Number(o.outstanding) : undefined;
   return {
     id,
     fname,
@@ -950,7 +952,9 @@ function normalizeListedAgent(raw: unknown): ListedAgent | null {
     userid: userid || undefined,
     agentCode: agentCode || undefined,
     branchLabel: refPlaceLabel(o.branch),
+    branchId: mongoIdString(o.branch),
     routeLabel: refPlaceLabel(o.route),
+    routeId: mongoIdString(o.route),
     isActive,
     creditLimit,
     outstanding,
